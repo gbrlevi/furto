@@ -1,0 +1,7 @@
+# Skeleton video over a neutral background (no raw video involved).
+dataset_config: configs/poselift.yaml
+split: train
+video_id: null  # null = first video of the split
+image_size: [1920, 1080]  # PoseLift source resolution (README)
+scale: 0.5
+conf_min: 0.1  # drawing only; not a method value
