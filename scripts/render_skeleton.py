@@ -1,4 +1,7 @@
-"""Render one PoseLift video as skeletons on a neutral background, as mp4 in runs/."""
+"""Render one PoseLift video as skeletons on a neutral background, as mp4 in runs/.
+
+With `snapshot: true` the frame with the most people is also saved as PNG.
+"""
 
 import argparse
 from pathlib import Path
@@ -40,6 +43,7 @@ def main() -> None:
         float(dataset["fps"]),
         (int(width * scale), int(height * scale)),
     )
+    snapshot = int(np.bincount(video.frame_idx).argmax()) if config["snapshot"] else -1
     for q in range(video.n_frames):
         rows = np.flatnonzero(video.frame_idx == q)
         caption = f"{video_id} [{split}] frame {q}"
@@ -52,6 +56,8 @@ def main() -> None:
             caption,
         )
         writer.write(frame)
+        if q == snapshot:
+            cv2.imwrite(str(run_dir / f"{video_id}_frame{q}.png"), frame)
     writer.release()
     print(out)
 

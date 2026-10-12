@@ -1,0 +1,8 @@
+# Visual proof required to accept ADR-0010: full 1920 x 1080 canvas, production reading.
+dataset_config: configs/poselift.yaml
+split: train
+video_id: 5_227  # training video with the most people in one frame (6)
+image_size: [1920, 1080]
+scale: 1.0
+conf_min: 0.1  # drawing only; not a method value
+snapshot: true
