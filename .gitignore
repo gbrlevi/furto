@@ -1,8 +1,8 @@
 *.md
 
 # Dados e resultados
-data/
-runs/
+/data/
+/runs/
 
 # Vídeo bruto e pesos de modelo
 *.mp4
