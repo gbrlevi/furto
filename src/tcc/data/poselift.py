@@ -125,7 +125,9 @@ def parse_video(
             box = np.asarray(entry[0], dtype=np.float64)
             kp = entry[1]
             if box.shape != (4,):
-                raise PoseLiftFormatError(f"{video_id}: frame {q} person {pid} bbox shape {box.shape}")
+                raise PoseLiftFormatError(
+                    f"{video_id}: frame {q} person {pid} bbox shape {box.shape}"
+                )
             if not isinstance(kp, np.ndarray) or kp.shape != (V, 3):
                 shape = getattr(kp, "shape", type(kp).__name__)
                 raise PoseLiftFormatError(f"{video_id}: frame {q} person {pid} keypoints {shape}")
@@ -169,9 +171,7 @@ def load_labels(root: Path, video_id: str) -> npt.NDArray[np.int64]:
     return labels.astype(np.int64)
 
 
-def load_video(
-    root: Path, split: str, video_id: str, cfg: Mapping[str, Any]
-) -> VideoPoses:
+def load_video(root: Path, split: str, video_id: str, cfg: Mapping[str, Any]) -> VideoPoses:
     """Load one video. `cfg` holds keypoint_order, bbox_format and conf_nan."""
     labels = load_labels(root, video_id) if split == "test" else None
     return parse_video(

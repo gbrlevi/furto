@@ -59,14 +59,20 @@ def validate(v: VideoPoses) -> None:
     """Raise ValueError if `v` breaks the contract."""
     n = len(v.frame_idx)
     checks = [
-        (v.frame_idx.shape == (n,) and v.frame_idx.dtype == np.int64, "frame_idx must be int64 (N,)"),
+        (
+            v.frame_idx.shape == (n,) and v.frame_idx.dtype == np.int64,
+            "frame_idx must be int64 (N,)",
+        ),
         (v.track_id.shape == (n,) and v.track_id.dtype == np.int64, "track_id must be int64 (N,)"),
         (v.bbox.shape == (n, 4) and v.bbox.dtype == np.float32, "bbox must be float32 (N, 4)"),
         (
             v.keypoints.shape == (n, V, 3) and v.keypoints.dtype == np.float32,
             "keypoints must be float32 (N, 17, 3)",
         ),
-        (n == 0 or (v.frame_idx.min() >= 0 and v.frame_idx.max() < v.n_frames), "frame_idx out of range"),
+        (
+            n == 0 or (v.frame_idx.min() >= 0 and v.frame_idx.max() < v.n_frames),
+            "frame_idx out of range",
+        ),
         (bool(np.all(v.bbox[:, 2] >= v.bbox[:, 0])), "bbox x2 < x1"),
         (bool(np.all(v.bbox[:, 3] >= v.bbox[:, 1])), "bbox y2 < y1"),
     ]
