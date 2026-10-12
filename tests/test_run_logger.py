@@ -127,8 +127,10 @@ def test_outside_git_repo_counts_as_dirty(tmp_path: Path) -> None:
 def test_write_meta_uses_the_given_directory(repo: Path, tmp_path: Path) -> None:
     target = tmp_path / "reference"
     target.mkdir()
-    write_meta(target, "ref", config={"cmd": ["python", "x.py"]}, seeds={"global": 0}, repo=repo)
-    meta = _meta(target)
+    write_meta(
+        target, "ref", {"cmd": ["python", "x.py"]}, {"global": 0}, repo=repo, filename="m.json"
+    )
+    meta = json.loads((target / "m.json").read_text(encoding="utf-8"))
     assert meta["name"] == "ref"
     assert meta["config"] == {"cmd": ["python", "x.py"]}
     assert meta["git"]["dirty"] is False

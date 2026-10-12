@@ -43,8 +43,9 @@ def write_meta(
     seeds: Mapping[str, int],
     models: Mapping[str, Mapping[str, str]] | None = None,
     repo: Path = Path("."),
+    filename: str = "meta.json",
 ) -> None:
-    """Write `meta.json` into an existing directory chosen by the caller."""
+    """Write the run record into an existing directory chosen by the caller."""
     now = datetime.now().astimezone()
     meta = {
         "name": name,
@@ -57,7 +58,7 @@ def write_meta(
         "git": _git_state(repo),
         "config": config,
     }
-    (run_dir / "meta.json").write_text(
+    (run_dir / filename).write_text(
         json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8"
     )
 

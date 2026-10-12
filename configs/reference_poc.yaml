@@ -1,9 +1,8 @@
-# Reference run of the original PoC (session 2, task B). Default configuration, seed 0.
+# Reference run of the original PoC (session 2, task B3): training, default config, seed 0.
 # Root is Pickle_files: on data/raw/poselift the original reads every video twice
 # (pkl and json), which duplicates the training set (decision of Gabriel, 12/10/2026).
+step: train
 script: legacy/poc_luiz/treinar.py
-data: data/raw/poselift/Pickle_files
-output_root: data/reference
-name: poc_luiz_seed0
+args: [--dados, data/raw/poselift/Pickle_files, --saida, data/reference, --nome, poc_luiz_seed0, --semente, 0]
+output_dir: data/reference/poc_luiz_seed0
 seed: 0
-extra_args: ["--semente", 0]

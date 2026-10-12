@@ -1,0 +1,6 @@
+# Reference run of the original PoC (session 2, task B4): validation scores only.
+step: val
+script: legacy/poc_luiz/gerar_referencia_val.py
+args: [data/reference/poc_luiz_seed0]
+output_dir: data/reference/poc_luiz_seed0
+seed: 0
