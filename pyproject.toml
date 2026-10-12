@@ -62,3 +62,4 @@ ignore_missing_imports = true
 testpaths = ["tests"]
 norecursedirs = ["legacy", "data", "runs", ".venv"]
 addopts = "--import-mode=importlib"
+pythonpath = ["."]
