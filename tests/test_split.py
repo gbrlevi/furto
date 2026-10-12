@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from tcc.data.split import MissingOfficialSplitError, official_split
+from tcc.data.split import MissingOfficialSplitError, official_split, split_train_val
 from tests.fixtures.synthetic import generate, poselift_id, write_poselift
 
 
@@ -54,3 +54,17 @@ def test_labels_for_a_train_video_fail(root: Path) -> None:
     np.save(root / "Pickle_files/GT" / f"{train_id}.npy", np.zeros(5, np.int64))
     with pytest.raises(MissingOfficialSplitError, match="outside the test split"):
         official_split(root)
+
+
+def test_train_val_split_shares_no_video() -> None:
+    ids = [f"1_{i}" for i in range(40)]
+    train, val = split_train_val(ids, 0.15, seed=0)
+    assert set(train).isdisjoint(val)
+    assert sorted(train + val) == sorted(ids)
+    assert len(val) == 6
+
+
+def test_train_val_split_is_deterministic_per_seed() -> None:
+    ids = [f"1_{i}" for i in range(40)]
+    assert split_train_val(ids, 0.15, 0) == split_train_val(ids, 0.15, 0)
+    assert split_train_val(ids, 0.15, 0)[1] != split_train_val(ids, 0.15, 1)[1]

@@ -7,6 +7,8 @@ fails; it never infers the split from the labels (rule 1).
 
 from pathlib import Path
 
+import numpy as np
+
 from tcc.data.poselift import LABEL_DIR, SPLIT_DIRS
 
 
@@ -37,3 +39,19 @@ def official_split(root: Path) -> dict[str, list[str]]:
     if extra:
         raise MissingOfficialSplitError(f"labels for videos outside the test split: {extra}")
     return split
+
+
+def split_train_val(
+    video_ids: list[str], fraction: float, seed: int
+) -> tuple[list[str], list[str]]:
+    """Split training videos into train and validation by video, never by window.
+
+    Same permutation as `dividir_por_video` in the original PoC, so the same ids in the
+    same order give the same validation videos.
+    Adaptado de luizvitord/poc_furto@9bc4a91 (Luiz Vitor Dantas Freitas).
+    """
+    rng = np.random.default_rng(seed)
+    idx = rng.permutation(len(video_ids))
+    n_val = max(1, int(round(fraction * len(video_ids))))
+    val = {video_ids[i] for i in idx[:n_val]}
+    return [v for v in video_ids if v not in val], [v for v in video_ids if v in val]
