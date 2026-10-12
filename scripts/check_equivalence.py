@@ -2,7 +2,9 @@
 
 - split: the ported train/validation split gives the reference validation videos;
 - treatment: with the original reading (as_is, one), the ported treatment gives exactly
-  the windows stored in val_ref.npz.
+  the windows stored in val_ref.npz;
+- model: the reference checkpoint loaded into the ported model gives the reference window
+  scores within the tolerance declared in the config.
 """
 
 import argparse
@@ -11,9 +13,12 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import torch
 
 from tcc.data.poselift import load_video
 from tcc.data.split import official_split, split_train_val
+from tcc.model.stgcn_ae import STGCNAutoencoder, state_dict_from_poc
+from tcc.model.train import window_scores
 from tcc.preprocess.windows import video_windows
 from tcc.utils.config import load_config
 from tcc.utils.run_logger import start_run
@@ -36,8 +41,19 @@ def main() -> None:
     train_ids = official_split(root)["train"]
     _, val = split_train_val(train_ids, config["split"]["val_fraction"], config["split"]["seed"])
 
+    ck = torch.load(
+        Path(config["reference_dir"]) / "modelo.pt", map_location="cpu", weights_only=True
+    )
+    m = ck["modelo"]
+    model = STGCNAutoencoder(m["canais"], m["latente"], m["k_t"], m["dropout"])
+    model.load_state_dict(state_dict_from_poc(ck["estado"]), strict=True)
+    device = torch.device(config["model"]["device"])
+    model.to(device).eval()
+    tol = config["model"]["tolerance"]
+
     t = config["treatment"]
     per_video: dict[str, Any] = {}
+    ours_all, ref_all = [], []
     for vid in ref_val:
         x, meta = video_windows(
             load_video(root, "train", vid, dataset),
@@ -56,7 +72,25 @@ def main() -> None:
             "identical_meta": bool(same_shape and np.array_equal(meta[:, 1:], rmeta[:, 1:])),
             "max_abs_diff": float(np.abs(x - rx).max()) if same_shape and len(x) else None,
         }
+        ours_all.append(window_scores(model, x, device, "conf", config["model"]["batch_size"]))
+        ref_all.append(ref[f"{vid}__window_scores"])
+    ours, theirs = np.concatenate(ours_all), np.concatenate(ref_all)
+    finite = np.isfinite(theirs)
+    rel = np.abs(ours[finite] - theirs[finite]) / np.abs(theirs[finite])
     results = {
+        "model": {
+            "checkpoint_epoch": int(ck["epoca"]),
+            "windows": int(len(theirs)),
+            "nan_windows_reference": int((~finite).sum()),
+            "same_nan_pattern": bool(np.array_equal(np.isnan(ours), np.isnan(theirs))),
+            "max_abs_diff": float(np.abs(ours[finite] - theirs[finite]).max()),
+            "max_rel_diff": float(rel.max()),
+            "identical": bool(np.array_equal(ours, theirs, equal_nan=True)),
+            "within_tolerance": bool(
+                np.allclose(ours, theirs, rtol=tol["rtol"], atol=tol["atol"], equal_nan=True)
+            ),
+            "tolerance": tol,
+        },
         "split": {"ported": sorted(val), "reference": ref_val, "identical": sorted(val) == ref_val},
         "treatment": {
             "videos": len(per_video),

@@ -11,3 +11,7 @@ treatment:  # treinar.py / dados.Config defaults
   max_gap: 8
   conf_min: 0.1
   center: frame
+model:  # avaliar.inferir: batch of 1024 windows, loss normalized by the confidence sum
+  device: cuda  # same device as the reference (val_ref.npz records it)
+  batch_size: 1024
+  tolerance: {rtol: 1.0e-5, atol: 1.0e-7}  # float32; different cuDNN kernels may be picked
