@@ -32,6 +32,20 @@ def start_run(
     now = datetime.now().astimezone()
     run_dir = runs_root / f"{now:%Y%m%d-%H%M%S}_{name}"
     run_dir.mkdir(parents=True, exist_ok=False)
+    write_meta(run_dir, name, config, seeds, models, repo)
+    return run_dir
+
+
+def write_meta(
+    run_dir: Path,
+    name: str,
+    config: Mapping[str, Any],
+    seeds: Mapping[str, int],
+    models: Mapping[str, Mapping[str, str]] | None = None,
+    repo: Path = Path("."),
+) -> None:
+    """Write `meta.json` into an existing directory chosen by the caller."""
+    now = datetime.now().astimezone()
     meta = {
         "name": name,
         "created_at": now.isoformat(timespec="seconds"),
@@ -46,7 +60,6 @@ def start_run(
     (run_dir / "meta.json").write_text(
         json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8"
     )
-    return run_dir
 
 
 def _versions() -> dict[str, Any]:

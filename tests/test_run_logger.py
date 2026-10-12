@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from tcc.utils.run_logger import start_run
+from tcc.utils.run_logger import start_run, write_meta
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -122,6 +122,16 @@ def test_outside_git_repo_counts_as_dirty(tmp_path: Path) -> None:
     meta = _run(not_repo, tmp_path)
     assert meta["git"]["commit"] is None
     assert meta["git"]["dirty"] is True
+
+
+def test_write_meta_uses_the_given_directory(repo: Path, tmp_path: Path) -> None:
+    target = tmp_path / "reference"
+    target.mkdir()
+    write_meta(target, "ref", config={"cmd": ["python", "x.py"]}, seeds={"global": 0}, repo=repo)
+    meta = _meta(target)
+    assert meta["name"] == "ref"
+    assert meta["config"] == {"cmd": ["python", "x.py"]}
+    assert meta["git"]["dirty"] is False
 
 
 def test_records_full_config(repo: Path, tmp_path: Path) -> None:
