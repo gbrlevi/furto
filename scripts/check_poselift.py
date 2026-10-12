@@ -25,6 +25,7 @@ from tcc.data.stats import (
     axis_evidence,
     confidence_histograms,
     frame_counts,
+    nan_rows_vs_fractional_boxes,
     nan_runs,
     nan_summary,
     track_lengths,
@@ -149,6 +150,7 @@ def main() -> None:
         "nan": {
             "all": nan_summary(all_kp),
             "train": nan_summary(train_kp),
+            "vs_fractional_boxes": nan_rows_vs_fractional_boxes(everything),
             "all_nan_rows_runs": {
                 "runs": len(runs),
                 "rows": int(sum(r["length"] for r in runs)),

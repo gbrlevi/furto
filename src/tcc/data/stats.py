@@ -134,6 +134,21 @@ def nan_runs(v: VideoPoses, tolerance_px: float) -> list[dict[str, Any]]:
     return out
 
 
+def nan_rows_vs_fractional_boxes(videos: Sequence[VideoPoses]) -> dict[str, int]:
+    """Cross all-NaN-confidence rows with rows whose bbox has a non-integer value.
+
+    Detected boxes are stored as integers; an interpolated box usually is not.
+    """
+    nan_rows = frac_rows = both = 0
+    for v in videos:
+        all_nan = np.isnan(v.keypoints[..., 2]).sum(1) == v.keypoints.shape[1]
+        frac = (v.bbox != np.round(v.bbox)).any(1)
+        nan_rows += int(all_nan.sum())
+        frac_rows += int(frac.sum())
+        both += int((all_nan & frac).sum())
+    return {"all_nan_rows": nan_rows, "fractional_box_rows": frac_rows, "both": both}
+
+
 def axis_evidence(
     stored: npt.NDArray[np.float32], boxes: npt.NDArray[np.float32]
 ) -> dict[str, Any]:

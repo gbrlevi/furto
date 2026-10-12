@@ -5,6 +5,7 @@ from tcc.data.stats import (
     axis_evidence,
     confidence_histograms,
     frame_counts,
+    nan_rows_vs_fractional_boxes,
     nan_runs,
     nan_summary,
     track_lengths,
@@ -89,6 +90,19 @@ def test_nan_run_off_the_line_is_not_linear() -> None:
     kp[1, :, 1] = 7.0  # middle frame 7 px away from the straight line
     runs = nan_runs(_video([0, 1, 2], [1] * 3, 3, keypoints=kp), tolerance_px=0.5)
     assert runs[0]["max_deviation_px"] == 7.0 and runs[0]["linear"] is False
+
+
+def test_nan_rows_vs_fractional_boxes_counts_the_overlap() -> None:
+    kp = np.ones((3, 17, 3), np.float32)
+    kp[1:, :, 2] = np.nan
+    v = _video([0, 1, 2], [1] * 3, 3, keypoints=kp)
+    v.bbox[1] = [0.5, 0, 1, 1]
+    v.bbox[0] = [0, 0, 1.5, 1]
+    assert nan_rows_vs_fractional_boxes([v]) == {
+        "all_nan_rows": 2,
+        "fractional_box_rows": 2,
+        "both": 1,
+    }
 
 
 def test_axis_evidence_finds_the_vertical_column() -> None:
