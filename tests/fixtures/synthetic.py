@@ -99,6 +99,37 @@ def generate(seed: int = 1, n_train: int = 24, n_test: int = 8) -> list[Syntheti
     return videos
 
 
+def poselift_id(name: str) -> str:
+    """'C1_007' -> '1_007', the <camera>_<video> naming of PoseLift."""
+    return name.removeprefix("C")
+
+
+def write_poselift(root: Path, videos: list[SyntheticVideo]) -> None:
+    """Write videos in the layout of the real PoseLift Drive folder.
+
+    Pickle_files/{Train,Test}/<id>.pkl with {frame: {pid: [bbox x1y1x2y2 ints,
+    keypoints (17, 3) float16 stored as (y, x, c)]}} for frames 0..last frame with a
+    person, and Pickle_files/GT/<id>.npy for test videos (docs/tcc/FORMATO_POSELIFT.md).
+    """
+    base = root / "Pickle_files"
+    for folder in ["Train", "Test", "GT"]:
+        (base / folder).mkdir(parents=True, exist_ok=True)
+    for v in videos:
+        last = max(int(idx[-1]) for idx, _ in v.people.values())
+        frames: dict[int, dict[int, list[object]]] = {q: {} for q in range(last + 1)}
+        for pid, (idx, seq) in v.people.items():
+            for q, kp in zip(idx, seq, strict=True):
+                x, y = kp[:, 0], kp[:, 1]
+                box = [int(x.min()), int(y.min()), int(np.ceil(x.max())), int(np.ceil(y.max()))]
+                stored = kp[:, [1, 0, 2]].astype(np.float16)
+                frames[int(q)][pid] = [box, stored]
+        folder = "Test" if v.split == "test" else "Train"
+        with open(base / folder / f"{poselift_id(v.name)}.pkl", "wb") as f:
+            pickle.dump(frames, f)
+        if v.split == "test":
+            np.save(base / "GT" / f"{poselift_id(v.name)}.npy", v.labels)
+
+
 def write_pkl(root: Path, videos: list[SyntheticVideo]) -> None:
     """Write `<name>.pkl` + `<name>.npy` in the layout of the original script (bbox in XYWH)."""
     root.mkdir(parents=True, exist_ok=True)
