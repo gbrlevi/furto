@@ -2,11 +2,11 @@
 root: data/raw/poselift
 fps: 15
 
-# Stored keypoint triplets are (y, x, c), and boxes are (x1, y1, x2, y2), although the
-# README says XYC and XYWH. Evidence measured by scripts/check_poselift.py.
-keypoint_order: yx
+# Stored keypoint triplets are (y, x, c) and boxes are (x1, y1, x2, y2), although the
+# README says XYC and XYWH (ADR-0010). as_is keeps the stored columns (original PoC).
+keypoint_order: yx_stored
 bbox_format: xyxy
 
-# Confidence given to points whose confidence is NaN with valid x/y.
-# 1.0 is the PoC default; ADR-0008 (Proposed) decides after the session 1 measurement.
-conf_nan: 1.0
+# NaN confidence marks poses interpolated by the authors (ADR-0011).
+# interpolate (production) | one (original PoC) | zero (sensitivity, validation only)
+nan_confidence: interpolate

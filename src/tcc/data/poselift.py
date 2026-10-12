@@ -9,7 +9,9 @@ Layout under the dataset root, as distributed on the authors' Google Drive:
 Each pickle is {frame_idx: {person_id: [bbox, keypoints]}}, with frame_idx from 0 and
 contiguous, bbox as four integers and keypoints as a (17, 3) float16 array. Anything
 else raises `PoseLiftFormatError`. The column order of keypoints and bbox comes from
-the config, because the published README and the files disagree (see the format doc).
+the config, because the published README and the files disagree (ADR-0010). NaN
+confidences mark poses interpolated by the authors and are handled by `nan_confidence`
+(ADR-0011).
 
 `sanitize` is adapted from luizvitord/poc_furto@9bc4a91 (Luiz Vitor Dantas Freitas).
 """
@@ -31,8 +33,12 @@ LABEL_DIR = "GT"
 VIDEO_ID = re.compile(r"^(\d+)_(\d+)$")
 
 # Column positions of (x, y) inside the stored keypoint triplets.
-KEYPOINT_ORDERS = {"xy": (0, 1), "yx": (1, 0)}
+# yx_stored: production (ADR-0010); as_is: columns as stored, reproduces the original PoC.
+KEYPOINT_ORDERS = {"yx_stored": (1, 0), "as_is": (0, 1)}
 BBOX_FORMATS = ("xyxy", "xywh")
+# interpolate: production (ADR-0011); one: original PoC; zero: sensitivity on validation;
+# keep: leave NaN untouched, for inspection only.
+NAN_CONFIDENCE = ("interpolate", "one", "zero", "keep")
 
 # The pickles only need numpy's array reconstruction; anything else is refused.
 _ALLOWED_GLOBALS = {
@@ -93,18 +99,50 @@ def sanitize(
     return kp, int(conf_bad.sum()), int(xy_bad.sum())
 
 
+def interpolate_nan_confidence(
+    video_id: str,
+    frame_idx: npt.NDArray[np.int64],
+    track_id: npt.NDArray[np.int64],
+    keypoints: npt.NDArray[np.float32],
+) -> npt.NDArray[np.float32]:
+    """Replace NaN confidences by linear interpolation between the real poses of the same
+    track, joint by joint (ADR-0011). A NaN without a real pose on both sides is an error.
+    """
+    out = keypoints.copy()
+    nan = np.isnan(out[..., 2])
+    for tid in np.unique(track_id[nan.any(1)]):
+        rows = np.flatnonzero(track_id == tid)
+        rows = rows[np.argsort(frame_idx[rows])]
+        q = frame_idx[rows]
+        for j in range(out.shape[1]):
+            c = out[rows, j, 2]
+            bad = np.isnan(c)
+            if not bad.any():
+                continue
+            good = ~bad
+            if not good.any() or q[bad].min() < q[good].min() or q[bad].max() > q[good].max():
+                raise PoseLiftFormatError(
+                    f"{video_id}: track {tid} joint {j} has NaN confidence without real "
+                    "poses on both sides"
+                )
+            out[rows[bad], j, 2] = np.interp(q[bad], q[good], c[good])
+    return out
+
+
 def parse_video(
     video_id: str,
     raw: Any,  # Any: unvalidated pickle content
     labels: npt.NDArray[np.int64] | None,
     keypoint_order: str,
     bbox_format: str,
-    conf_nan: float | None,
+    nan_confidence: str,
 ) -> VideoPoses:
     if keypoint_order not in KEYPOINT_ORDERS:
         raise ValueError(f"keypoint_order must be one of {sorted(KEYPOINT_ORDERS)}")
     if bbox_format not in BBOX_FORMATS:
         raise ValueError(f"bbox_format must be one of {BBOX_FORMATS}")
+    if nan_confidence not in NAN_CONFIDENCE:
+        raise ValueError(f"nan_confidence must be one of {NAN_CONFIDENCE}")
     if not isinstance(raw, dict) or not raw:
         raise PoseLiftFormatError(f"{video_id}: top level must be a non-empty dict of frames")
     frames = list(raw)
@@ -147,7 +185,12 @@ def parse_video(
     keypoints = np.stack(rows_kp) if rows_kp else np.zeros((0, V, 3), np.float32)
     ix, iy = KEYPOINT_ORDERS[keypoint_order]
     keypoints = keypoints[..., [ix, iy, 2]]
-    keypoints, _, _ = sanitize(keypoints, conf_nan)
+    frame_idx = np.asarray(rows_q, np.int64)
+    track_id = np.asarray(rows_pid, np.int64)
+    if nan_confidence == "interpolate":
+        keypoints = interpolate_nan_confidence(video_id, frame_idx, track_id, keypoints)
+    if nan_confidence != "keep":
+        keypoints, _, _ = sanitize(keypoints, 0.0 if nan_confidence == "zero" else 1.0)
     boxes = np.stack(rows_box) if rows_box else np.zeros((0, 4))
     if bbox_format == "xywh":
         boxes = np.concatenate([boxes[:, :2], boxes[:, :2] + boxes[:, 2:]], axis=1)
@@ -156,8 +199,8 @@ def parse_video(
         video_id=video_id,
         camera=camera_of(video_id),
         n_frames=n_frames,
-        frame_idx=np.asarray(rows_q, np.int64),
-        track_id=np.asarray(rows_pid, np.int64),
+        frame_idx=frame_idx,
+        track_id=track_id,
         bbox=boxes.astype(np.float32),
         keypoints=np.ascontiguousarray(keypoints, dtype=np.float32),
         frame_labels=labels,
@@ -172,7 +215,7 @@ def load_labels(root: Path, video_id: str) -> npt.NDArray[np.int64]:
 
 
 def load_video(root: Path, split: str, video_id: str, cfg: Mapping[str, Any]) -> VideoPoses:
-    """Load one video. `cfg` holds keypoint_order, bbox_format and conf_nan."""
+    """Load one video. `cfg` holds keypoint_order, bbox_format and nan_confidence."""
     labels = load_labels(root, video_id) if split == "test" else None
     return parse_video(
         video_id,
@@ -180,5 +223,5 @@ def load_video(root: Path, split: str, video_id: str, cfg: Mapping[str, Any]) ->
         labels,
         keypoint_order=cfg["keypoint_order"],
         bbox_format=cfg["bbox_format"],
-        conf_nan=cfg["conf_nan"],
+        nan_confidence=cfg["nan_confidence"],
     )

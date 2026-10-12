@@ -16,7 +16,7 @@ from tcc.data.poselift import (
 )
 from tests.fixtures.synthetic import SyntheticVideo, generate, poselift_id, write_poselift
 
-CFG = {"keypoint_order": "yx", "bbox_format": "xyxy", "conf_nan": 1.0}
+CFG = {"keypoint_order": "yx_stored", "bbox_format": "xyxy", "nan_confidence": "interpolate"}
 
 
 @pytest.fixture(scope="module")
@@ -85,29 +85,29 @@ def test_train_videos_are_unlabelled(root: Path, videos: list[SyntheticVideo]) -
 
 def test_frames_not_starting_at_zero_fail() -> None:
     with pytest.raises(PoseLiftFormatError, match="0..n-1"):
-        parse_video("1_1", {1: {}, 2: {}}, None, "yx", "xyxy", 1.0)
+        parse_video("1_1", {1: {}, 2: {}}, None, "yx_stored", "xyxy", "one")
 
 
 def test_entry_that_is_not_bbox_and_keypoints_fails() -> None:
     with pytest.raises(PoseLiftFormatError, match=r"\[bbox, kp\]"):
-        parse_video("1_1", {0: {3: {"keypoints": []}}}, None, "yx", "xyxy", 1.0)
+        parse_video("1_1", {0: {3: {"keypoints": []}}}, None, "yx_stored", "xyxy", "one")
 
 
 def test_wrong_keypoint_shape_fails() -> None:
     raw = {0: {3: [[1, 2, 3, 4], np.ones((18, 3), np.float16)]}}
     with pytest.raises(PoseLiftFormatError, match="keypoints"):
-        parse_video("1_1", raw, None, "yx", "xyxy", 1.0)
+        parse_video("1_1", raw, None, "yx_stored", "xyxy", "one")
 
 
 def test_labels_shorter_than_pose_frames_fail() -> None:
     raw = {0: {}, 1: {3: _entry()}}
     with pytest.raises(PoseLiftFormatError, match="labels"):
-        parse_video("1_1", raw, np.zeros(1, np.int64), "yx", "xyxy", 1.0)
+        parse_video("1_1", raw, np.zeros(1, np.int64), "yx_stored", "xyxy", "one")
 
 
 def test_bad_video_id_fails() -> None:
     with pytest.raises(PoseLiftFormatError, match="camera"):
-        parse_video("C1_1", {0: {3: _entry()}}, None, "yx", "xyxy", 1.0)
+        parse_video("C1_1", {0: {3: _entry()}}, None, "yx_stored", "xyxy", "one")
 
 
 def test_pickle_requesting_other_globals_is_refused(tmp_path: Path) -> None:
@@ -134,3 +134,45 @@ def test_sanitize_with_none_keeps_raw_values() -> None:
     kp[0, 0, 2] = np.nan
     out, n_conf, _ = sanitize(kp, conf_nan=None)
     assert n_conf == 1 and np.isnan(out[0, 0, 2])
+
+
+def _nan_track() -> dict[int, dict[int, list[Any]]]:
+    """Track 3 over frames 0..3; frames 1 and 2 have NaN confidence (interpolated pose)."""
+    raw: dict[int, dict[int, list[Any]]] = {}
+    for q, conf in enumerate([0.2, np.nan, np.nan, 0.8]):
+        kp = np.full((17, 3), conf, np.float16)
+        kp[:, 0], kp[:, 1] = 100 + q, 50 + q  # stored (y, x)
+        raw[q] = {3: [[40, 90, 60, 110], kp]}
+    return raw
+
+
+def test_nan_confidence_interpolate_uses_neighbouring_real_poses() -> None:
+    v = parse_video("1_1", _nan_track(), None, "yx_stored", "xyxy", "interpolate")
+    expected = np.array([0.2, 0.4, 0.6, 0.8], np.float16).astype(np.float32)
+    np.testing.assert_allclose(v.keypoints[:, 0, 2], expected, atol=1e-3)
+
+
+def test_nan_confidence_one_and_zero() -> None:
+    one = parse_video("1_1", _nan_track(), None, "yx_stored", "xyxy", "one")
+    zero = parse_video("1_1", _nan_track(), None, "yx_stored", "xyxy", "zero")
+    assert one.keypoints[1:3, :, 2].tolist() == [[1.0] * 17] * 2
+    assert zero.keypoints[1:3, :, 2].tolist() == [[0.0] * 17] * 2
+
+
+def test_nan_confidence_keep_leaves_nan() -> None:
+    v = parse_video("1_1", _nan_track(), None, "yx_stored", "xyxy", "keep")
+    assert np.isnan(v.keypoints[1:3, :, 2]).all()
+
+
+def test_nan_confidence_at_track_edge_fails_interpolation() -> None:
+    raw = _nan_track()
+    raw[3][3][1][:, 2] = np.nan
+    with pytest.raises(PoseLiftFormatError, match="both sides"):
+        parse_video("1_1", raw, None, "yx_stored", "xyxy", "interpolate")
+
+
+def test_keypoint_order_as_is_keeps_stored_columns() -> None:
+    v = parse_video("1_1", _nan_track(), None, "as_is", "xyxy", "one")
+    assert v.keypoints[0, 0, :2].tolist() == [100.0, 50.0]
+    w = parse_video("1_1", _nan_track(), None, "yx_stored", "xyxy", "one")
+    assert w.keypoints[0, 0, :2].tolist() == [50.0, 100.0]

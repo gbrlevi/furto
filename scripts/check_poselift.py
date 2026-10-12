@@ -120,7 +120,7 @@ def main() -> None:
     run_dir = start_run("check_poselift", config=config, seeds={})
 
     root = Path(dataset["root"])
-    raw_cfg = {"keypoint_order": "xy", "bbox_format": "xyxy", "conf_nan": None}
+    raw_cfg = {"keypoint_order": "as_is", "bbox_format": "xyxy", "nan_confidence": "keep"}
     split = official_split(root)
     videos = {
         part: [load_video(root, part, i, raw_cfg) for i in ids] for part, ids in split.items()
