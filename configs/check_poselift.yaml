@@ -1,0 +1,20 @@
+# Inspection of the PoseLift download (session 1, items 10 to 12). Run on a clean tree.
+dataset_config: configs/poselift.yaml
+
+# Published counts, docs/tcc/CONTEXTO_TCC.md, Tabela 1 (Rashvand et al., 2025a)
+published:
+  train: {normal: 53353, theft: 0}
+  test: {normal: 2221, theft: 1500}
+  videos_paper: 155
+  videos_readme: 153
+  theft_videos: 43
+  cameras: 6
+
+# Trajectory length thresholds reported (T candidates of the sensitivity study)
+short_track_thresholds: [12, 24, 48]
+
+# A NaN-confidence run counts as linear interpolation if its x/y stay within this many
+# pixels of the straight line between the bounding frames (float16 storage: 0.5 to 1 px).
+interpolation_tolerance_px: 1.0
+
+confidence_bins: 20
