@@ -6,9 +6,10 @@ Adaptado de luizvitord/poc_furto@9bc4a91 (Luiz Vitor Dantas Freitas).
 import numpy as np
 import numpy.typing as npt
 
+from tcc.data.schema import VideoPoses
 from tcc.data.skeleton import V
 from tcc.preprocess.normalize import normalize
-from tcc.preprocess.trajectories import Trajectory
+from tcc.preprocess.trajectories import Trajectory, split_trajectories, tracks
 
 
 class TheftInTrainingError(RuntimeError):
@@ -54,3 +55,18 @@ def check_no_theft(
     touched = int(((cum[end] - cum[meta[:, 2]]) > 0).sum())
     if touched:
         raise TheftInTrainingError(f"{touched} training windows touch theft frames")
+
+
+def video_windows(
+    video: VideoPoses,
+    length: int,
+    stride: int,
+    max_gap: int,
+    conf_min: float,
+    center: str,
+    video_idx: int = 0,
+) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
+    """Trajectories of one video cut into normalized windows (the original `gerar_janelas`
+    applied to `trajetorias`)."""
+    trajectories = split_trajectories(tracks(video), max_gap, length)
+    return make_windows(trajectories, length, stride, conf_min, center, video_idx)

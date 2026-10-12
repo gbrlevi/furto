@@ -1,0 +1,41 @@
+# C1 (PoseLift -> PoseLift), production configuration, session 2. Validation only.
+dataset_config: configs/poselift.yaml  # yx_stored (ADR-0010), interpolate (ADR-0011)
+
+split:
+  val_fraction: 0.15  # by video (rule 3)
+  seed: 0
+
+treatment:
+  T: 24  # ADR-0003
+  stride_train: 6
+  stride_eval: 1
+  max_gap: 8  # k: gaps up to k frames are interpolated (PoC default, candidate)
+  conf_min: 0.1  # PoC default, candidate
+  center: frame  # per-frame hip centre (Relatório); "window" is the alternative
+
+model:
+  channels: [32, 64, 64]
+  latent: 16
+  k_t: 9
+  dropout: 0.1
+
+loss:
+  loss_norm: conf  # ADR-0007
+  mask_target: false  # ADR-0007
+
+augmentation:
+  enabled: true
+  p_drop_joint: 0.1
+  rotation_deg: 10
+  scale: 0.1
+  noise: 0.01
+  p_mirror: 0.5
+
+train:
+  seed: 0
+  epochs: 60
+  patience: 8
+  batch_size: 256
+  lr: 0.001
+  lr_plateau: {enabled: true, factor: 0.5, patience: 3}  # not in the Relatório
+  eval_batch_size: 1024

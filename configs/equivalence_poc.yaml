@@ -1,0 +1,13 @@
+# Equivalence of the port with the original PoC reference (session 2, tasks 7 and 10).
+reference_dir: data/reference/poc_luiz_seed0
+dataset_config: configs/poselift.yaml
+dataset_overrides:  # reproduces the original reading
+  keypoint_order: as_is
+  nan_confidence: one
+split: {val_fraction: 0.15, seed: 0}  # treinar.py defaults
+treatment:  # treinar.py / dados.Config defaults
+  T: 24
+  stride_eval: 1
+  max_gap: 8
+  conf_min: 0.1
+  center: frame
