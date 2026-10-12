@@ -8,6 +8,7 @@ from tcc.data.stats import (
     nan_rows_vs_fractional_boxes,
     nan_runs,
     nan_summary,
+    short_trajectory_share,
     track_lengths,
 )
 
@@ -122,3 +123,19 @@ def test_confidence_histograms_skip_nan() -> None:
     hist = confidence_histograms(kp, np.array([0.0, 0.5, 1.0]))
     assert hist.shape == (17, 2)
     assert hist[0].tolist() == [1, 1]
+
+
+def test_short_trajectory_share_counts_rows_and_frames() -> None:
+    # track 1: frames 0..9 (span 10, kept with min_length 10);
+    # track 2: frames 0..3 then 20..22 (gap > max_gap: two short pieces)
+    frames = list(range(10)) + [0, 1, 2, 3, 20, 21, 22]
+    tracks_ = [1] * 10 + [2] * 7
+    share = short_trajectory_share([_video(frames, tracks_, n_frames=30)], 2, 10)
+    assert share == {
+        "pieces": 3,
+        "short_pieces": 2,
+        "rows": 17,
+        "short_rows": 7,
+        "frames": 13,
+        "frames_lost": 3,
+    }

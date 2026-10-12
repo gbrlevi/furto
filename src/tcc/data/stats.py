@@ -188,3 +188,36 @@ def confidence_histograms(
         c = keypoints[:, j, 2]
         out[j] = np.histogram(c[np.isfinite(c)], bins=bins)[0]
     return out
+
+
+def short_trajectory_share(
+    videos: Sequence[VideoPoses], max_gap: int, min_length: int
+) -> dict[str, int]:
+    """How much data the treatment discards as short trajectories.
+
+    Tracks are cut where more than `max_gap` frames are missing, as in
+    `tcc.preprocess.trajectories.split_trajectories`; a piece spanning fewer than
+    `min_length` frames is discarded. Counts are of stored rows (person x frame) and of
+    frames with at least one person.
+    """
+    counts = dict.fromkeys(
+        ["pieces", "short_pieces", "rows", "short_rows", "frames", "frames_lost"], 0
+    )
+    for v in videos:
+        keep = np.zeros(len(v), bool)
+        for rows in _tracks(v):
+            q = v.frame_idx[rows]
+            cuts = np.flatnonzero(np.diff(q) > max_gap + 1) + 1
+            for piece in np.split(rows, cuts):
+                qp = v.frame_idx[piece]
+                counts["pieces"] += 1
+                if qp[-1] - qp[0] + 1 >= min_length:
+                    keep[piece] = True
+                else:
+                    counts["short_pieces"] += 1
+        counts["rows"] += len(v)
+        counts["short_rows"] += int((~keep).sum())
+        frames = np.unique(v.frame_idx)
+        counts["frames"] += len(frames)
+        counts["frames_lost"] += len(frames) - len(np.unique(v.frame_idx[keep]))
+    return counts
