@@ -1,0 +1,3 @@
+# Smoke test of the GPU and of the run record. No method value here.
+seed: 0
+matrix_size: 2048
