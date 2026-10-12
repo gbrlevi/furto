@@ -30,6 +30,8 @@ def main() -> None:
     root = Path(dataset["root"])
     split = config["split"]
     video_id = config["video_id"] or official_split(root)[split][0]
+    if not isinstance(video_id, str):  # YAML reads an unquoted 5_227 as the integer 5227
+        raise SystemExit(f"video_id must be a quoted string, got {video_id!r}")
     config["video_id"] = video_id
     run_dir = start_run("render_skeleton", config=config, seeds={})
 
