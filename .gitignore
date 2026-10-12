@@ -1,0 +1,33 @@
+*.md
+
+# Dados e resultados
+data/
+runs/
+
+# Vídeo bruto e pesos de modelo
+*.mp4
+*.avi
+*.mkv
+*.mov
+*.pt
+*.pth
+*.onnx
+*.engine
+checkpoints/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
+
+# Ambiente
+.env
+.DS_Store
+Thumbs.db
+
+# Exceção à regra *.md (Gabriel, 12/10/2026): o ROADMAP é versionado
+!docs/ROADMAP.md
