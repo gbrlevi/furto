@@ -55,7 +55,8 @@ strict = true
 exclude = ["^legacy/"]
 
 [[tool.mypy.overrides]]
-module = ["cv2.*", "sklearn.*", "scipy.*", "matplotlib.*"]
+# mmpose, mmengine and ultralytics live only in .venv-pose (session 2B)
+module = ["cv2.*", "sklearn.*", "scipy.*", "matplotlib.*", "mmpose.*", "mmengine.*", "ultralytics.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
