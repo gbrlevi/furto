@@ -32,5 +32,6 @@ Thumbs.db
 # Exceção à regra *.md (Gabriel, 12/10/2026): o ROADMAP é versionado
 !docs/ROADMAP.md
 
-# Ambiente separado do PoC original (sessão 2)
+# Ambientes separados: PoC original (sessão 2) e pilha de pose (sessão 2B)
 .venv-legacy/
+.venv-pose/
