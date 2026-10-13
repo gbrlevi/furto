@@ -54,8 +54,10 @@ def main() -> None:
             x = torch.randn(n, 3, 256, 192, device=config["device"])
             with torch.no_grad():
                 for _ in range(config["warmup"]):
-                    model(x, mode="tensor")
-                forward = _median_ms(lambda x=x: model(x, mode="tensor"), config["repeats"])
+                    model(x, None, mode="tensor")
+                forward = _median_ms(
+                    lambda x=x, m=model: m(x, None, mode="tensor"), config["repeats"]
+                )
             boxes = np.array(
                 [[w * (0.1 + 0.15 * i), h * 0.2, w * (0.2 + 0.15 * i), h * 0.8] for i in range(n)],
                 np.float32,
@@ -63,7 +65,7 @@ def main() -> None:
             for _ in range(config["warmup"]):
                 inference_topdown(model, frame, boxes, bbox_format="xyxy")
             topdown = _median_ms(
-                lambda boxes=boxes: inference_topdown(model, frame, boxes, bbox_format="xyxy"),
+                lambda b=boxes, m=model: inference_topdown(m, frame, b, bbox_format="xyxy"),
                 config["repeats"],
             )
             per_model[f"{n}_boxes"] = {
