@@ -1,0 +1,24 @@
+# Session 2C demonstration (qualitative; not a performance measurement).
+c1_run: runs/20261012-164001_train_c1  # checkpoint, treatment and dataset config
+extraction_run: runs/20261012-225556_demo_extract  # poses from .venv-pose (2B config)
+threshold_quantile: 0.99  # demo only: C1 validation window scores (rule 2); not the operational threshold
+device: cuda
+batch_size: 1024
+internal_dir: data/interim/demo  # video over real frames: never in git, thesis or slides (ADR-0005)
+conf_min_draw: 0.3  # drawing only
+
+videos:
+  - id: "Shoplifting028"
+    camera: ucf
+    path: data/raw/ucf_crime/Shoplifting028_x264.mp4
+    theft_source_frames: [[570, 840]]  # 30 fps source frames
+    annotation_source: Temporal_Anomaly_Annotation_for_Testing_Videos.txt (UCF-Crime official Dropbox, linked from crcv.ucf.edu/projects/real-world)
+    internal_scale: 3.0  # 320 x 240 -> 960 x 720
+    public_scale: 3.0
+  - id: "G421_2018-03-11_16-15"
+    camera: G421
+    path: data/raw/meva/2018-03-11.16-15-00.16-20-00.school.G421.r13.avi
+    theft_source_frames: []
+    annotation_source: null
+    internal_scale: 0.5  # 1920 x 1072 -> 960 x 536
+    public_scale: 0.5
