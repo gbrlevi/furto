@@ -5,7 +5,8 @@ Run with the pose environment:
     .venv-pose/Scripts/python.exe scripts/extract_pose.py --config configs/pose_extract.yaml
 
 Writes, per video, <name>_poses.npz (ADR-0004 contract) and the stage timings to
-results.json. Raw video never leaves data/.
+results.json; with `copy_to`, also a copy of each npz in that folder. Raw video never
+leaves data/.
 """
 
 import argparse
@@ -48,14 +49,18 @@ def main() -> None:
     results = {}
     for video in config["videos"]:
         poses, stats = extract_video(Path(video["path"]), video["id"], video["camera"], config)
-        np.savez_compressed(
-            run_dir / f"{video['id']}_poses.npz",
-            frame_idx=poses.frame_idx,
-            track_id=poses.track_id,
-            bbox=poses.bbox,
-            keypoints=poses.keypoints,
-            n_frames=poses.n_frames,
-        )
+        arrays = {
+            "frame_idx": poses.frame_idx,
+            "track_id": poses.track_id,
+            "bbox": poses.bbox,
+            "keypoints": poses.keypoints,
+            "n_frames": poses.n_frames,
+        }
+        np.savez_compressed(run_dir / f"{video['id']}_poses.npz", **arrays)
+        if config.get("copy_to"):  # e.g. data/interim/demo (session 2C)
+            copy_dir = Path(config["copy_to"])
+            copy_dir.mkdir(parents=True, exist_ok=True)
+            np.savez_compressed(copy_dir / f"{video['id']}_poses.npz", **arrays)
         stats["records"] = len(poses)
         stats["tracks"] = int(len(np.unique(poses.track_id)))
         results[video["id"]] = stats

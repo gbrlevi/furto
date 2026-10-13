@@ -1,0 +1,38 @@
+# Pose extraction feasibility (session 2B). Variants are NOT decided: PoseLift does not
+# publish them (FORMATO_POSELIFT.md). Session 2C demo: same configuration as session 2B (w32).
+name: demo_extract
+device: cuda:0
+target_fps: 15
+max_output_frames: null  # null = whole video
+copy_to: data/interim/demo
+
+detector:
+  name: yolov8m
+  weights: data/weights/ultralytics/yolov8m.pt  # github.com/ultralytics/assets v8.3.0
+  conf: 0.1  # = track_low_thresh, so ByteTrack also sees the low-score boxes
+  imgsz: 640  # ultralytics default
+  half: false
+
+tracker:  # ultralytics 8.4.176 cfg/trackers/bytetrack.yaml defaults (not the reference ByteTrack)
+  tracker_type: bytetrack
+  track_high_thresh: 0.25
+  track_low_thresh: 0.1
+  new_track_thresh: 0.25
+  track_buffer: 30  # frames (2 s at 15 fps)
+  match_thresh: 0.8
+  fuse_score: true
+
+pose:
+  name: td-hm_hrnet-w32_8xb64-210e_coco-256x192
+  config: data/weights/mmpose/td-hm_hrnet-w32_8xb64-210e_coco-256x192.py
+  weights: data/weights/mmpose/td-hm_hrnet-w32_8xb64-210e_coco-256x192-81c58e40_20220909.pth
+
+videos:
+  # theft: UCF-Crime test video; official temporal annotation 570-840 (30 fps source frames)
+  - id: "Shoplifting028"
+    camera: ucf
+    path: data/raw/ucf_crime/Shoplifting028_x264.mp4
+  # normal: MEVA indoor camera (CC BY 4.0), downloaded in session 2B
+  - id: "G421_2018-03-11_16-15"
+    camera: G421
+    path: data/raw/meva/2018-03-11.16-15-00.16-20-00.school.G421.r13.avi
