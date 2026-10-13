@@ -5,6 +5,8 @@ frame_source: data/raw/meva/2018-03-11.16-15-00.16-20-00.school.G421.r13.avi  # 
 boxes: [1, 4]
 warmup: 10
 repeats: 100
+flip_test: [true, false]  # true is the official HRNet COCO config
+cudnn_benchmark: [false, true]
 models:
   hrnet-w32:
     config: data/weights/mmpose/td-hm_hrnet-w32_8xb64-210e_coco-256x192.py

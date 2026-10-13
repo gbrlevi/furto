@@ -2,7 +2,8 @@
 
 Run with the pose environment. Times, on the GPU, the network forward on a batch of
 crops (256 x 192) and one `inference_topdown` call with the same number of boxes on a
-real video frame.
+real video frame, with test-time flip on and off and with cuDNN autotuning on and off.
+Only measures: the extraction config itself is not changed here.
 """
 
 import argparse
@@ -46,36 +47,39 @@ def main() -> None:
     h, w = frame.shape[:2]
     results = {}
     for name, pose in config["models"].items():
-        model = init_model(pose["config"], pose["weights"], device=config["device"])
-        model.eval()
-        flip = bool(model.cfg.model.test_cfg.get("flip_test", False))
-        per_model = {"flip_test": flip}
-        for n in config["boxes"]:
-            x = torch.randn(n, 3, 256, 192, device=config["device"])
-            with torch.no_grad():
-                for _ in range(config["warmup"]):
-                    model(x, None, mode="tensor")
-                forward = _median_ms(
-                    lambda x=x, m=model: m(x, None, mode="tensor"), config["repeats"]
-                )
-            boxes = np.array(
-                [[w * (0.1 + 0.15 * i), h * 0.2, w * (0.2 + 0.15 * i), h * 0.8] for i in range(n)],
-                np.float32,
-            )
-            for _ in range(config["warmup"]):
-                inference_topdown(model, frame, boxes, bbox_format="xyxy")
-            topdown = _median_ms(
-                lambda b=boxes, m=model: inference_topdown(m, frame, b, bbox_format="xyxy"),
-                config["repeats"],
-            )
-            per_model[f"{n}_boxes"] = {
-                "forward_ms": forward,
-                "inference_topdown_ms": topdown,
-                "forward_with_flip_ms_estimate": forward * (2 if flip else 1),
-            }
-        results[name] = per_model
-        del model
-        torch.cuda.empty_cache()
+        for flip in config["flip_test"]:
+            for benchmark in config["cudnn_benchmark"]:
+                torch.backends.cudnn.benchmark = benchmark
+                model = init_model(pose["config"], pose["weights"], device=config["device"])
+                model.eval()
+                model.test_cfg["flip_test"] = flip
+                key = f"{name}|flip_test={flip}|cudnn_benchmark={benchmark}"
+                results[key] = {}
+                for n in config["boxes"]:
+                    x = torch.randn(n, 3, 256, 192, device=config["device"])
+                    with torch.no_grad():
+                        for _ in range(config["warmup"]):
+                            model(x, None, mode="tensor")
+                        forward = _median_ms(
+                            lambda x=x, m=model: m(x, None, mode="tensor"), config["repeats"]
+                        )
+                    boxes = np.array(
+                        [[w * (0.1 + 0.15 * i), h * 0.2, w * (0.2 + 0.15 * i), h * 0.8]
+                         for i in range(n)],
+                        np.float32,
+                    )  # fmt: skip
+                    for _ in range(config["warmup"]):
+                        inference_topdown(model, frame, boxes, bbox_format="xyxy")
+                    topdown = _median_ms(
+                        lambda b=boxes, m=model: inference_topdown(m, frame, b, bbox_format="xyxy"),
+                        config["repeats"],
+                    )
+                    results[key][f"{n}_boxes"] = {
+                        "forward_ms": forward,
+                        "inference_topdown_ms": topdown,
+                    }
+                del model
+                torch.cuda.empty_cache()
     (run_dir / "results.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
     print(run_dir)
     print(json.dumps(results, indent=2))
