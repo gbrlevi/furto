@@ -1,0 +1,6 @@
+# Skeleton-only render of the UCF-Crime extraction (internal demo, ADR-0005).
+extraction_run: runs/20261012-214127_pose_extract_ucf_shoplifting
+videos: ["Shoplifting028"]
+fps: 15
+scale: 3.0  # 320 x 240 -> 960 x 720
+conf_min: 0.3  # drawing only; HRNet heatmap scores, not a method value
