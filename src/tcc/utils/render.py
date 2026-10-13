@@ -1,4 +1,4 @@
-"""Draw skeletons on a neutral background. No raw video is ever read or written here."""
+"""Draw skeletons and score marks. Raw frames are only drawn on when a caller passes one."""
 
 import cv2
 import numpy as np
@@ -42,4 +42,64 @@ def draw_skeletons(
                         cv2.FONT_HERSHEY_SIMPLEX, 0.4, TEXT, 1, cv2.LINE_AA)  # fmt: skip
     if caption:
         cv2.putText(img, caption, (8, 18), cv2.FONT_HERSHEY_SIMPLEX, 0.5, TEXT, 1, cv2.LINE_AA)
+    return img
+
+
+GREEN = (0, 131, 0)  # BGR of #008300
+RED = (72, 73, 227)  # BGR of #e34948
+NO_SCORE = (150, 150, 150)
+WHITE = (255, 255, 255)
+
+
+def score_color(score: float, threshold: float) -> tuple[int, int, int]:
+    """Green at 0, red at or above the threshold, linear in between; gray without score."""
+    if not np.isfinite(score):
+        return NO_SCORE
+    t = float(np.clip(score / threshold, 0.0, 1.0))
+    g, r = np.array(GREEN, float), np.array(RED, float)
+    b, gg, rr = np.round((1 - t) * g + t * r).astype(int).tolist()
+    return (b, gg, rr)
+
+
+def annotate_frame(
+    canvas: npt.NDArray[np.uint8],
+    keypoints: npt.NDArray[np.float32],
+    track_ids: npt.NDArray[np.int64],
+    boxes: npt.NDArray[np.float32],
+    scores: npt.NDArray[np.float64],
+    threshold: float,
+    scale: float,
+    conf_min: float,
+    alert: bool,
+    caption: str = "",
+) -> npt.NDArray[np.uint8]:
+    """Draw skeleton, score-coloured box, id and score of each person on a copy of
+    `canvas` (already at `scale`), plus an ALERTA banner when `alert` is true."""
+    img = canvas.copy()
+    for kp, tid, box, s in zip(keypoints, track_ids, boxes, scores, strict=True):
+        xy = np.round(kp[:, :2] * scale).astype(np.int32)
+        ok = kp[:, 2] >= conf_min
+        for a, b in EDGES:
+            if ok[a] and ok[b]:
+                cv2.line(img, tuple(xy[a]), tuple(xy[b]), BONE, 2, cv2.LINE_AA)
+        color = score_color(float(s), threshold)
+        x1, y1, x2, y2 = np.round(box * scale).astype(int).tolist()
+        cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
+        label = f"{int(tid)} " + (f"{s:.3f}" if np.isfinite(s) else "--")
+        cv2.putText(
+            img, label, (x1, max(12, y1 - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 1, cv2.LINE_AA
+        )
+    if alert:
+        cv2.rectangle(img, (0, 0), (img.shape[1], 28), RED, -1)
+        cv2.putText(img, "ALERTA", (8, 21), cv2.FONT_HERSHEY_SIMPLEX, 0.7, WHITE, 2, cv2.LINE_AA)
+    if caption:
+        y = img.shape[0] - 10
+        cv2.putText(img, caption, (8, y), cv2.FONT_HERSHEY_SIMPLEX, 0.45, TEXT, 1, cv2.LINE_AA)
+    return img
+
+
+def blank_canvas(size: tuple[int, int], scale: float) -> npt.NDArray[np.uint8]:
+    """Neutral background of the source `size` (width, height) times `scale`."""
+    img = np.empty((int(size[1] * scale), int(size[0] * scale), 3), np.uint8)
+    img[:] = BACKGROUND
     return img
