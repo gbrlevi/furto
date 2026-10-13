@@ -1,0 +1,14 @@
+# HRNet cost split (session 2B): network forward vs mmpose inference_topdown overhead.
+seed: 0
+device: cuda:0
+frame_source: data/raw/meva/2018-03-11.16-15-00.16-20-00.school.G421.r13.avi  # first frame
+boxes: [1, 4]
+warmup: 10
+repeats: 100
+models:
+  hrnet-w32:
+    config: data/weights/mmpose/td-hm_hrnet-w32_8xb64-210e_coco-256x192.py
+    weights: data/weights/mmpose/td-hm_hrnet-w32_8xb64-210e_coco-256x192-81c58e40_20220909.pth
+  hrnet-w48:
+    config: data/weights/mmpose/td-hm_hrnet-w48_8xb32-210e_coco-256x192.py
+    weights: data/weights/mmpose/td-hm_hrnet-w48_8xb32-210e_coco-256x192-0e67c616_20220913.pth
