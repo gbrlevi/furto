@@ -1,0 +1,38 @@
+# Pose extraction feasibility (session 2B). Variants are NOT decided: PoseLift does not
+# publish them (FORMATO_POSELIFT.md). Qualitative check on UCF-Crime (internal demo only, ADR-0005).
+name: pose_extract_ucf_shoplifting
+device: cuda:0
+target_fps: 15
+max_output_frames: null  # null = whole video
+
+detector:
+  name: yolov8m
+  weights: data/weights/ultralytics/yolov8m.pt  # github.com/ultralytics/assets v8.3.0
+  conf: 0.1  # = track_low_thresh, so ByteTrack also sees the low-score boxes
+  imgsz: 640  # ultralytics default
+  half: false
+
+tracker:  # ultralytics 8.4.176 cfg/trackers/bytetrack.yaml defaults (not the reference ByteTrack)
+  tracker_type: bytetrack
+  track_high_thresh: 0.25
+  track_low_thresh: 0.1
+  new_track_thresh: 0.25
+  track_buffer: 30  # frames (2 s at 15 fps)
+  match_thresh: 0.8
+  fuse_score: true
+
+pose:
+  name: td-hm_hrnet-w32_8xb64-210e_coco-256x192
+  config: data/weights/mmpose/td-hm_hrnet-w32_8xb64-210e_coco-256x192.py
+  weights: data/weights/mmpose/td-hm_hrnet-w32_8xb64-210e_coco-256x192-81c58e40_20220909.pth
+
+videos:  # UCF-Crime Shoplifting, test videos with temporal annotation; 320 x 240, 30 fps
+  - id: "Shoplifting001"
+    camera: ucf
+    path: data/raw/ucf_crime/Shoplifting001_x264.mp4
+  - id: "Shoplifting005"
+    camera: ucf
+    path: data/raw/ucf_crime/Shoplifting005_x264.mp4
+  - id: "Shoplifting028"
+    camera: ucf
+    path: data/raw/ucf_crime/Shoplifting028_x264.mp4
