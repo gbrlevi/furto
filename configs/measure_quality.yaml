@@ -1,0 +1,15 @@
+# Session 2D, task 3: quality-gate thresholds (ADR-0014) and scale-guard ratios (ADR-0015).
+# PoseLift training part only (C1 split); production treatment, T = 24, S = 6.
+c1_config: configs/c1_base.yaml  # split, dataset and treatment
+image_size: [1920, 1080]  # PoseLift paper; every training box must fit, or border is left out
+border_margin_px: 2
+percentiles: [0, 0.5, 1, 2.5, 5, 10, 25, 50, 75, 90, 95, 97.5, 99, 99.5, 100]
+
+# Pre-declared rule (session 2D, task 3), fixed before measuring. numpy's default
+# (linear) percentile. Lower bounds fail below; border_fraction fails above.
+rule:
+  mean_confidence: p1
+  real_fraction: p1
+  torso_fraction: p1
+  box_height: p1
+  border_fraction: p99
