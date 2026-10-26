@@ -56,10 +56,11 @@ from tcc.utils.run_logger import start_run
 
 SCORE_COLOR, INK, GRID = "#2a78d6", "#3d3d3a", "#e4e3df"
 ALERT_COLOR, THEFT_COLOR = "#e34948", "#eb6834"
-# Not-scorable shading, one categorical slot per criterion in CRITERIA order
+# Not-scorable shading, one fixed categorical slot per criterion of CRITERIA
 REASON_COLORS = dict(
-    zip(CRITERIA, ["#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6"], strict=True)
+    zip(CRITERIA, ["#1baf7a", "#eda100", "#e87ba4", "#6250d6", "#008300"], strict=True)
 )
+SYMLOG_LINEAR = 0.1  # linear part of the score axis: [0, 0.1 * threshold] (drawing only)
 
 
 def _spans(mask: np.ndarray) -> list[tuple[int, int]]:
@@ -94,7 +95,7 @@ def _timeline(
         handles.append(Patch(color=THEFT_COLOR, label="annotated theft"))
     ax.plot(t, np.where(fs.state == SCORED, fs.score, np.nan), color=SCORE_COLOR, linewidth=1.5)
     ax.axhline(threshold, color=INK, linewidth=1, linestyle="--")
-    ax.set_yscale("symlog", linthresh=threshold)
+    ax.set_yscale("symlog", linthresh=SYMLOG_LINEAR * threshold)
     ax.set_ylim(bottom=0)
     ax.set_xlim(0, n / fps)
     ax.set_xlabel("seconds (15 fps)", color=INK)
