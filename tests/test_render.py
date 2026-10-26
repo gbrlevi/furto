@@ -74,3 +74,30 @@ def test_annotate_frame_without_alert_has_no_banner() -> None:
     img = annotate_frame(canvas, empty, np.zeros(0, np.int64), np.zeros((0, 4), np.float32),
                          np.zeros(0), 1.0, 1.0, 0.1, alert=False)  # fmt: skip
     assert (img == np.array(BACKGROUND, np.uint8)).all()
+
+
+def _box(pose: np.ndarray) -> np.ndarray:
+    return np.array(
+        [[pose[0, :, 0].min(), pose[0, :, 1].min(), pose[0, :, 0].max(), pose[0, :, 1].max()]],
+        np.float32,
+    )
+
+
+def test_not_scorable_person_gets_a_gray_box() -> None:
+    pose = _pose()
+    canvas = blank_canvas((1920, 1080), 0.5)
+    args = (canvas, pose, np.array([1]), _box(pose), np.array([2.0]), 1.0, 0.5, 0.1)
+    img = annotate_frame(*args, alert=False, reasons=["box_height"])
+    assert (img == np.array(NO_SCORE, np.uint8)).all(-1).sum() > 50
+    assert (img == np.array(RED, np.uint8)).all(-1).sum() == 0
+
+
+def test_interpolated_pose_is_drawn_translucent() -> None:
+    pose = _pose()
+    canvas = blank_canvas((1920, 1080), 0.5)
+    args = (canvas, pose, np.array([1]), _box(pose), np.array([0.0]), 1.0, 0.5, 0.1)
+    solid = annotate_frame(*args, alert=False)
+    faint = annotate_frame(*args, alert=False, interpolated=np.array([True]))
+    assert (solid == np.array(BONE, np.uint8)).all(-1).sum() > 50
+    assert (faint == np.array(BONE, np.uint8)).all(-1).sum() == 0
+    assert (faint != canvas).any(-1).sum() > 50

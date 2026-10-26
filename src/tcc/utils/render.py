@@ -49,6 +49,7 @@ GREEN = (0, 131, 0)  # BGR of #008300
 RED = (72, 73, 227)  # BGR of #e34948
 NO_SCORE = (150, 150, 150)
 WHITE = (255, 255, 255)
+INTERPOLATED_ALPHA = 0.45  # opacity of poses filled by the treatment (drawing only)
 
 
 def score_color(score: float, threshold: float) -> tuple[int, int, int]:
@@ -72,23 +73,41 @@ def annotate_frame(
     conf_min: float,
     alert: bool,
     caption: str = "",
+    interpolated: npt.NDArray[np.bool_] | None = None,
+    reasons: list[str] | None = None,
 ) -> npt.NDArray[np.uint8]:
     """Draw skeleton, score-coloured box, id and score of each person on a copy of
-    `canvas` (already at `scale`), plus an ALERTA banner when `alert` is true."""
+    `canvas` (already at `scale`), plus an ALERTA banner when `alert` is true.
+
+    People marked in `interpolated` (pose filled by the treatment, no detection in this
+    frame) are drawn translucent and labelled "interpolada". A non-empty entry of
+    `reasons` (quality gate, ADR-0014) gives a gray box labelled with the reason.
+    """
     img = canvas.copy()
-    for kp, tid, box, s in zip(keypoints, track_ids, boxes, scores, strict=True):
+    n = len(track_ids)
+    interpolated = np.zeros(n, np.bool_) if interpolated is None else interpolated
+    reasons = [""] * n if reasons is None else reasons
+    rows = zip(keypoints, track_ids, boxes, scores, interpolated, reasons, strict=True)
+    for kp, tid, box, s, interp, reason in rows:
+        layer = img.copy() if interp else img
         xy = np.round(kp[:, :2] * scale).astype(np.int32)
         ok = kp[:, 2] >= conf_min
         for a, b in EDGES:
             if ok[a] and ok[b]:
-                cv2.line(img, tuple(xy[a]), tuple(xy[b]), BONE, 2, cv2.LINE_AA)
-        color = score_color(float(s), threshold)
+                cv2.line(layer, tuple(xy[a]), tuple(xy[b]), BONE, 2, cv2.LINE_AA)
+        color = NO_SCORE if reason else score_color(float(s), threshold)
         x1, y1, x2, y2 = np.round(box * scale).astype(int).tolist()
-        cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
-        label = f"{int(tid)} " + (f"{s:.3f}" if np.isfinite(s) else "--")
+        cv2.rectangle(layer, (x1, y1), (x2, y2), color, 2)
+        label = f"{int(tid)} " + (reason or (f"{s:.3f}" if np.isfinite(s) else "--"))
+        if interp:
+            label += " interpolada"
         cv2.putText(
-            img, label, (x1, max(12, y1 - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 1, cv2.LINE_AA
-        )
+            layer, label, (x1, max(12, y1 - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 1,
+            cv2.LINE_AA,
+        )  # fmt: skip
+        if interp:
+            blend = cv2.addWeighted(layer, INTERPOLATED_ALPHA, img, 1 - INTERPOLATED_ALPHA, 0)
+            img = np.asarray(blend, np.uint8)
     if alert:
         cv2.rectangle(img, (0, 0), (img.shape[1], 28), RED, -1)
         cv2.putText(img, "ALERTA", (8, 21), cv2.FONT_HERSHEY_SIMPLEX, 0.7, WHITE, 2, cv2.LINE_AA)
