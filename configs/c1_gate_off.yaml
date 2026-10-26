@@ -1,0 +1,54 @@
+# C1 without the quality gate (scale guard on): sensitivity pre-declared for session 3 (ADR-0014).
+# Identical to c1_base.yaml except treatment.quality_gate. Validation only.
+dataset_config: configs/poselift.yaml  # yx_stored (ADR-0010), interpolate (ADR-0011)
+
+split:
+  val_fraction: 0.15  # by video (rule 3)
+  seed: 0
+
+treatment:
+  T: 24  # ADR-0003
+  stride_train: 6
+  stride_eval: 1
+  max_gap: 8  # k: gaps up to k frames are interpolated (PoC default, candidate)
+  conf_min: 0.1  # PoC default, candidate
+  center: frame  # per-frame hip centre (Relatório); "window" is the alternative
+  # Scale guard (ADR-0015); ratios from runs/20261026-203227_measure_quality (commit 79958eb)
+  scale_guard: "on"  # quoted: unquoted on is a YAML boolean
+  scale_ratio: {r_med: 0.31258456657615197, r_p1: 0.18402915642414405}
+  # Quality gate (ADR-0014); thresholds from the same run (percentile rule of session 2D).
+  # border_fraction is left out: 237 training boxes fall outside 1920 x 1080.
+  quality_gate: "off"  # the only difference from c1_base.yaml (sensitivity, ADR-0014)
+  quality_thresholds:
+    mean_confidence: 0.21910946890711785
+    real_fraction: 0.6345833333333335
+    torso_fraction: 0.0
+    box_height: 94.25
+  border_margin_px: 2
+
+model:
+  channels: [32, 64, 64]
+  latent: 16
+  k_t: 9
+  dropout: 0.1
+
+loss:
+  loss_norm: conf  # ADR-0007
+  mask_target: false  # ADR-0007
+
+augmentation:
+  enabled: true
+  p_drop_joint: 0.1
+  rotation_deg: 10
+  scale: 0.1
+  noise: 0.01
+  p_mirror: 0.5
+
+train:
+  seed: 0
+  epochs: 60
+  patience: 8
+  batch_size: 256
+  lr: 0.001
+  lr_plateau: {enabled: true, factor: 0.5, patience: 3}  # not in the Relatório
+  eval_batch_size: 1024

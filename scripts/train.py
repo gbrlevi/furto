@@ -15,12 +15,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from tcc.data.poselift import load_video
+from tcc.data.poselift import load_video_with_real
 from tcc.data.split import official_split, split_train_val
 from tcc.model.dataset import WindowDataset
 from tcc.model.stgcn_ae import STGCNAutoencoder, count_parameters
 from tcc.model.train import train
-from tcc.preprocess.windows import check_no_theft, video_windows
+from tcc.preprocess.normalize import SCALE_SOURCES
+from tcc.preprocess.quality import REASONS, SCORABLE
+from tcc.preprocess.windows import check_no_theft, treated_windows
 from tcc.utils.config import load_config
 from tcc.utils.run_logger import start_run
 from tcc.utils.seed import set_seed
@@ -28,19 +30,32 @@ from tcc.utils.seed import set_seed
 TRAIN_COLOR, VAL_COLOR, INK, GRID = "#2a78d6", "#eb6834", "#3d3d3a", "#e4e3df"
 
 
-def _windows(root: Path, ids: list[str], dataset: dict, t: dict) -> np.ndarray:
-    blocks = []
+def _windows(root: Path, ids: list[str], dataset: dict, t: dict) -> tuple[np.ndarray, dict]:
+    """Scorable windows of the videos (ADR-0014) and counts of gate reasons and scale
+    sources (ADR-0015) over all windows."""
+    blocks, reasons, sources = [], [], []
+    size = (int(dataset["image_size"][0]), int(dataset["image_size"][1]))
     for vid in ids:
-        video = load_video(root, "train", vid, dataset)
-        x, meta = video_windows(
-            video, t["T"], t["stride_train"], t["max_gap"], t["conf_min"], t["center"]
-        )
-        check_no_theft(meta, video.frame_labels, t["T"])
-        blocks.append(x)
-    return np.concatenate(blocks)
+        video, real = load_video_with_real(root, "train", vid, dataset)
+        w = treated_windows(video, t, t["stride_train"], size, real)
+        check_no_theft(w.meta, video.frame_labels, t["T"])
+        blocks.append(w.x[w.reason == SCORABLE])
+        reasons.append(w.reason)
+        sources.append(w.scale_source)
+    reason, source = np.concatenate(reasons), np.concatenate(sources)
+    counts = {
+        "windows_before_gate": int(len(reason)),
+        "gate_reasons": {name: int((reason == r).sum()) for r, name in REASONS.items()},
+        "scale_sources": {name: int((source == k).sum()) for k, name in SCALE_SOURCES.items()},
+        "scale_sources_scorable": {
+            name: int(((source == k) & (reason == SCORABLE)).sum())
+            for k, name in SCALE_SOURCES.items()
+        },
+    }
+    return np.concatenate(blocks), counts
 
 
-def _plot(history: list[dict[str, float]], best_epoch: int, path: Path) -> None:
+def _plot(history: list[dict[str, float]], best_epoch: int, path: Path, title: str) -> None:
     epochs = [h["epoch"] for h in history]
     fig, ax = plt.subplots(figsize=(7, 3.6))
     for key, color, name in [("train_loss", TRAIN_COLOR, "train"), ("val_loss", VAL_COLOR, "val")]:
@@ -54,7 +69,7 @@ def _plot(history: list[dict[str, float]], best_epoch: int, path: Path) -> None:
     ax.set_yscale("log")
     ax.set_xlabel("epoch", color=INK)
     ax.set_ylabel("weighted reconstruction error (log)", color=INK)
-    ax.set_title("C1 training on PoseLift (validation only)", color=INK)
+    ax.set_title(title, color=INK)
     ax.grid(axis="y", color=GRID, linewidth=0.8)
     for side in ["top", "right"]:
         ax.spines[side].set_visible(False)
@@ -72,7 +87,7 @@ def main() -> None:
     dataset = load_config(Path(config["dataset_config"]))
     config["dataset"] = dataset
     seeds = {"train": config["train"]["seed"], "split": config["split"]["seed"]}
-    run_dir = start_run("train_c1", config=config, seeds=seeds)
+    run_dir = start_run(f"train_{args.config.stem}", config=config, seeds=seeds)
 
     rng = set_seed(config["train"]["seed"])
     root = Path(dataset["root"])
@@ -80,7 +95,10 @@ def main() -> None:
         official_split(root)["train"], config["split"]["val_fraction"], config["split"]["seed"]
     )
     t = config["treatment"]
-    x_train, x_val = _windows(root, train_ids, dataset, t), _windows(root, val_ids, dataset, t)
+    (x_train, counts_train), (x_val, counts_val) = (
+        _windows(root, train_ids, dataset, t),
+        _windows(root, val_ids, dataset, t),
+    )
 
     aug = config["augmentation"]
     mask_target = config["loss"]["mask_target"]
@@ -131,13 +149,15 @@ def main() -> None:
         writer = csv.DictWriter(f, fieldnames=list(result.history[0]))
         writer.writeheader()
         writer.writerows(result.history)
-    _plot(result.history, result.best_epoch, run_dir / "loss_curve.png")
+    _plot(result.history, result.best_epoch, run_dir / "loss_curve.png",
+          f"C1 training on PoseLift, {args.config.stem} (validation only)")  # fmt: skip
     seconds = [h["seconds"] for h in result.history]
     results = {
         "parameters": count_parameters(model),
         "videos": {"train": len(train_ids), "val": len(val_ids)},
         "val_ids": val_ids,
         "windows": {"train": int(len(x_train)), "val": int(len(x_val))},
+        "treatment_counts": {"train": counts_train, "val": counts_val},
         "epochs_run": len(result.history),
         "best_epoch": result.best_epoch,
         "best_val_loss": result.best_val_loss,
