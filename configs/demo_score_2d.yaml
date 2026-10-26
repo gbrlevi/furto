@@ -1,0 +1,41 @@
+# Session 2D demonstration (qualitative; not a performance measurement).
+# Same three videos and same settings as the 2C runs, with the retrained C1 (scale guard
+# and quality gate on), its provisional threshold and the alert logic of tcc.eval.alerts.
+run_name: demo_2d
+c1_run: runs/20261026-203815_train_c1_base  # checkpoint, treatment and dataset config
+threshold_quantile: 0.99  # demo only: scorable C1 validation windows (rule 2); not operational
+min_alert_frames: 15  # 1 s at 15 fps, fixed a priori (group, 26/10/2026)
+merge_gap_frames: 30  # alerts less than 2 s apart are merged
+device: cuda
+batch_size: 1024
+internal_dir: data/interim/demo_2d  # video over real frames: never in git, thesis or slides (ADR-0005)
+conf_min_draw: 0.3  # drawing only
+
+videos:
+  - id: "Shoplifting028"
+    camera: ucf
+    path: data/raw/ucf_crime/Shoplifting028_x264.mp4
+    extraction_run: runs/20261012-225556_demo_extract
+    before_summary: runs/20261012-230502_demo_2c/Shoplifting028_summary.json
+    theft_source_frames: [[570, 840]]  # 30 fps source frames
+    annotation_source: Temporal_Anomaly_Annotation_for_Testing_Videos.txt (UCF-Crime official Dropbox, linked from crcv.ucf.edu/projects/real-world)
+    internal_scale: 3.0  # 320 x 240 -> 960 x 720
+    public_scale: 3.0
+  - id: "Shoplifting001"
+    camera: ucf
+    path: data/raw/ucf_crime/Shoplifting001_x264.mp4
+    extraction_run: runs/20261012-231148_demo_extract_shoplifting001
+    before_summary: runs/20261012-231939_demo_2c/Shoplifting001_summary.json
+    theft_source_frames: [[1550, 2000]]  # 30 fps source frames
+    annotation_source: Temporal_Anomaly_Annotation_for_Testing_Videos.txt (UCF-Crime official Dropbox, linked from crcv.ucf.edu/projects/real-world)
+    internal_scale: 3.0
+    public_scale: 3.0
+  - id: "G421_2018-03-11_16-15"
+    camera: G421
+    path: data/raw/meva/2018-03-11.16-15-00.16-20-00.school.G421.r13.avi
+    extraction_run: runs/20261012-225556_demo_extract
+    before_summary: runs/20261012-230502_demo_2c/G421_2018-03-11_16-15_summary.json
+    theft_source_frames: []
+    annotation_source: null
+    internal_scale: 0.5  # 1920 x 1072 -> 960 x 536
+    public_scale: 0.5
