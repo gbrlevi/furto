@@ -13,33 +13,30 @@ from tcc.data.skeleton import HIPS, SHOULDERS
 
 CENTERS = ("frame", "window")
 
+# Where each window's scale came from (window_scale)
+SCALE_TORSO, SCALE_HEIGHT, SCALE_ONE = 0, 1, 2
+SCALE_SOURCES = {SCALE_TORSO: "torso", SCALE_HEIGHT: "joint_extent", SCALE_ONE: "one"}
 
-def normalize(j: npt.NDArray[np.float32], conf_min: float, center: str) -> npt.NDArray[np.float32]:
-    """Centre on the hips and divide by the torso length. `j`: (..., T, 17, 3).
 
-    - Points with confidence below `conf_min` are missing: x, y and confidence become 0.
-    - Centre: mid-hip per frame; if a hip is missing, the mean of the valid joints.
-      With center="window", the mean of those centres over the window.
-    - Scale: mean torso length (mid-shoulder to mid-hip) over the frames where both are
-      valid; otherwise the vertical extent of the valid joints / 3 (fallback not in the
-      Relatório); otherwise 1.
+# Any: numpy's reductions are typed as scalar-or-array
+def _mean_of(
+    xy: npt.NDArray[np.float32], valid: npt.NDArray[np.bool_], idx: list[int]
+) -> tuple[Any, Any]:
+    return xy[..., idx, :].mean(-2), valid[..., idx].all(-1)
+
+
+def window_scale(
+    j: npt.NDArray[np.float32], conf_min: float
+) -> tuple[npt.NDArray[Any], npt.NDArray[np.int8]]:
+    """Scale of each window of `j` (..., T, 17, 3) and its source (SCALE_*).
+
+    Mean torso length (mid-shoulder to mid-hip) over the frames where both are valid;
+    otherwise the vertical extent of the valid joints / 3 (fallback not in the
+    Relatório); otherwise 1.
     """
-    if center not in CENTERS:
-        raise ValueError(f"center must be one of {CENTERS}")
-    j = j.astype(np.float32, copy=True)
-    xy, c = j[..., :2], j[..., 2]
-    valid = c >= conf_min
-
-    # Any: numpy's reductions are typed as scalar-or-array
-    def mean_of(idx: list[int]) -> tuple[Any, Any]:
-        return xy[..., idx, :].mean(-2), valid[..., idx].all(-1)
-
-    hip, ok_hip = mean_of(HIPS)
-    shoulder, ok_shoulder = mean_of(SHOULDERS)
-    w = valid[..., None].astype(np.float32)
-    mean_valid = (xy * w).sum(-2) / np.maximum(w.sum(-2), 1e-6)
-    centre = np.where(ok_hip[..., None], hip, mean_valid)
-
+    xy, valid = j[..., :2], j[..., 2] >= conf_min
+    hip, ok_hip = _mean_of(xy, valid, HIPS)
+    shoulder, ok_shoulder = _mean_of(xy, valid, SHOULDERS)
     torso = np.linalg.norm(shoulder - hip, axis=-1)
     ok_torso = ok_hip & ok_shoulder
     n = ok_torso.sum(-1)
@@ -49,8 +46,33 @@ def normalize(j: npt.NDArray[np.float32], conf_min: float, center: str) -> npt.N
         warnings.simplefilter("ignore")
         ys = np.where(valid, xy[..., 1], np.nan)
         height = (np.nanmax(ys, axis=(-1, -2)) - np.nanmin(ys, axis=(-1, -2))) / 3.0
-    scale = np.where(np.isfinite(scale) & (scale > 1e-3), scale, height)
-    scale = np.where(np.isfinite(scale) & (scale > 1e-3), scale, 1.0)
+    ok_scale = np.isfinite(scale) & (scale > 1e-3)
+    scale = np.where(ok_scale, scale, height)
+    ok_height = np.isfinite(scale) & (scale > 1e-3)
+    scale = np.where(ok_height, scale, 1.0)
+    source = np.where(ok_scale, SCALE_TORSO, np.where(ok_height, SCALE_HEIGHT, SCALE_ONE))
+    return scale, source.astype(np.int8)
+
+
+def normalize(j: npt.NDArray[np.float32], conf_min: float, center: str) -> npt.NDArray[np.float32]:
+    """Centre on the hips and divide by the torso length. `j`: (..., T, 17, 3).
+
+    - Points with confidence below `conf_min` are missing: x, y and confidence become 0.
+    - Centre: mid-hip per frame; if a hip is missing, the mean of the valid joints.
+      With center="window", the mean of those centres over the window.
+    - Scale: `window_scale`.
+    """
+    if center not in CENTERS:
+        raise ValueError(f"center must be one of {CENTERS}")
+    j = j.astype(np.float32, copy=True)
+    xy, c = j[..., :2], j[..., 2]
+    valid = c >= conf_min
+
+    hip, ok_hip = _mean_of(xy, valid, HIPS)
+    w = valid[..., None].astype(np.float32)
+    mean_valid = (xy * w).sum(-2) / np.maximum(w.sum(-2), 1e-6)
+    centre = np.where(ok_hip[..., None], hip, mean_valid)
+    scale, _ = window_scale(j, conf_min)
 
     if center == "window":
         ok_c = ok_hip | valid.any(-1)

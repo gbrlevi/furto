@@ -1,0 +1,16 @@
+# Session 2D, task 2: diagnosis of the 2C peak score. Same inputs as the 2C demo.
+c1_run: runs/20261012-164001_train_c1  # checkpoint and treatment of the 2C demo
+device: cuda
+batch_size: 1024
+top_k: 10
+
+videos:
+  - id: "Shoplifting028"
+    camera: ucf
+    extraction_run: runs/20261012-225556_demo_extract
+  - id: "Shoplifting001"
+    camera: ucf
+    extraction_run: runs/20261012-231148_demo_extract_shoplifting001
+  - id: "G421_2018-03-11_16-15"
+    camera: G421
+    extraction_run: runs/20261012-225556_demo_extract

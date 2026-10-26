@@ -5,7 +5,7 @@ import pytest
 
 from tcc.data.schema import VideoPoses
 from tcc.data.skeleton import HIPS, SHOULDERS
-from tcc.preprocess.normalize import normalize
+from tcc.preprocess.normalize import SCALE_HEIGHT, SCALE_ONE, SCALE_TORSO, normalize, window_scale
 from tcc.preprocess.occlusion import drop_joints
 from tcc.preprocess.trajectories import Trajectory, split_trajectories, tracks
 from tcc.preprocess.windows import (
@@ -93,6 +93,19 @@ def test_normalization_centres_on_the_hips_and_scales_by_the_torso() -> None:
     torso = np.linalg.norm(frames[:, SHOULDERS, :2].mean(1) - hips, axis=-1)
     np.testing.assert_allclose(hips, 0.0, atol=1e-5)
     assert torso.mean() == pytest.approx(1.0, rel=1e-5)
+
+
+def test_window_scale_reports_torso_joint_extent_or_one_as_source() -> None:
+    j = _pose_sequence(24)[None].repeat(3, 0)
+    j[..., 2] = 0.9
+    j[1, :, SHOULDERS, 2] = 0.0  # no torso anywhere: vertical extent of the valid joints / 3
+    j[2, :, :, 2] = 0.0
+    j[2, :, 0, 1:] = [50.0, 0.9]  # a single valid joint at a fixed height: no extent either
+    scale, source = window_scale(j, 0.1)
+    assert source.tolist() == [SCALE_TORSO, SCALE_HEIGHT, SCALE_ONE]
+    ys = j[1, :, [k for k in range(17) if k not in SHOULDERS], 1]
+    assert scale[1] == pytest.approx((ys.max() - ys.min()) / 3.0, rel=1e-6)
+    assert scale[2] == 1.0
 
 
 def test_training_windows_use_stride_and_always_reach_the_end() -> None:

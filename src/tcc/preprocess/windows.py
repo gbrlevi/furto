@@ -24,6 +24,21 @@ def window_starts(n: int, length: int, stride: int) -> list[int]:
     return starts
 
 
+def raw_windows(
+    trajectories: list[Trajectory], length: int, stride: int, video_idx: int = 0
+) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
+    """Windows before normalization (N, T, 17, 3) and metadata (N, 3) =
+    [video, track, first frame]."""
+    blocks, meta = [], []
+    for tid, frames, keypoints in trajectories:
+        for s in window_starts(len(frames), length, stride):
+            blocks.append(keypoints[s : s + length])
+            meta.append((video_idx, tid, int(frames[s])))
+    if not blocks:
+        return np.zeros((0, length, V, 3), np.float32), np.zeros((0, 3), np.int64)
+    return np.stack(blocks), np.asarray(meta, np.int64)
+
+
 def make_windows(
     trajectories: list[Trajectory],
     length: int,
@@ -33,15 +48,11 @@ def make_windows(
     video_idx: int = 0,
 ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
     """Normalized windows (N, 3, T, 17) and metadata (N, 3) = [video, track, first frame]."""
-    blocks, meta = [], []
-    for tid, frames, keypoints in trajectories:
-        for s in window_starts(len(frames), length, stride):
-            blocks.append(keypoints[s : s + length])
-            meta.append((video_idx, tid, int(frames[s])))
-    if not blocks:
-        return np.zeros((0, 3, length, V), np.float32), np.zeros((0, 3), np.int64)
-    x = normalize(np.stack(blocks), conf_min, center).transpose(0, 3, 1, 2)
-    return np.ascontiguousarray(x), np.asarray(meta, np.int64)
+    raw, meta = raw_windows(trajectories, length, stride, video_idx)
+    if not len(raw):
+        return np.zeros((0, 3, length, V), np.float32), meta
+    x = normalize(raw, conf_min, center).transpose(0, 3, 1, 2)
+    return np.ascontiguousarray(x), meta
 
 
 def check_no_theft(
