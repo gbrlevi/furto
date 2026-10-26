@@ -4,8 +4,14 @@ import numpy as np
 import pytest
 
 from tcc.pipeline.scoring import (
+    MOST_NORMAL,
+    NO_WINDOW,
+    NOT_SCORABLE,
+    SCORED,
     alert_intervals,
     frame_max,
+    frame_scores,
+    last_frame_reasons,
     last_frame_scores,
     load_extracted,
     overlaps,
@@ -68,3 +74,24 @@ def test_load_extracted_builds_the_contract(tmp_path: Path) -> None:
     )
     v = load_extracted(path, "v", "cam")
     assert v.n_frames == 3 and len(v) == 2 and v.frame_labels is None
+
+
+def test_frame_without_scorable_window_gets_most_normal_score_and_not_scorable_state() -> None:
+    meta = np.array([[0, 7, 0], [0, 7, 1], [0, 3, 1], [0, 3, 2]], np.int64)
+    scores = np.array([0.5, 0.9, 0.2, np.nan], np.float32)  # the last window is filtered
+    reason = np.array([0, 0, 0, 4], np.int8)
+    scorable = reason == 0
+    per_person = last_frame_scores(meta[scorable], scores[scorable], length=3)
+    fs = frame_scores(per_person, last_frame_reasons(meta, reason, length=3), n_frames=6)
+    assert fs.state.tolist() == [NO_WINDOW, NO_WINDOW, SCORED, SCORED, NOT_SCORABLE, NO_WINDOW]
+    assert fs.score[4] == MOST_NORMAL and fs.score[0] == MOST_NORMAL
+    assert fs.score[2:4].tolist() == pytest.approx([0.5, 0.9])
+    assert fs.reason.tolist() == [0, 0, 0, 0, 4, 0]
+
+
+def test_a_scored_person_wins_over_a_filtered_one_in_the_same_frame() -> None:
+    meta = np.array([[0, 1, 0], [0, 2, 0]], np.int64)
+    per_person = last_frame_scores(meta[:1], np.array([0.3], np.float32), length=2)
+    reasons = last_frame_reasons(meta, np.array([0, 1], np.int8), length=2)
+    fs = frame_scores(per_person, reasons, n_frames=2)
+    assert fs.state[1] == SCORED and fs.reason[1] == 0 and fs.score[1] == pytest.approx(0.3)

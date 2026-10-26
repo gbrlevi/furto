@@ -1,9 +1,13 @@
 """Quality gate (ADR-0014): measures per window and the reason a window is not scorable."""
 
+from pathlib import Path
+
 import numpy as np
 import pytest
 
+from tcc.data.poselift import load_video
 from tcc.data.skeleton import HIPS, SHOULDERS
+from tcc.data.split import official_split
 from tcc.preprocess.quality import (
     CRITERIA,
     REASONS,
@@ -15,7 +19,10 @@ from tcc.preprocess.quality import (
     window_quality,
 )
 from tcc.preprocess.trajectories import Trajectory, split_trajectories
-from tests.fixtures.synthetic import generate
+from tcc.preprocess.windows import switch, treated_windows, video_windows
+from tests.fixtures.synthetic import generate, write_poselift
+
+CFG = {"keypoint_order": "yx_stored", "bbox_format": "xyxy", "nan_confidence": "interpolate"}
 
 SIZE = (1920, 1080)
 THRESHOLDS = {
@@ -103,3 +110,40 @@ def test_interpolated_frames_are_not_real_and_boxes_are_interpolated() -> None:
     (t,) = split_trajectories([Trajectory(1, frames, kp, boxes, real)], max_gap=2, min_length=4)
     assert t.real.tolist() == [True, True, False, False, False, True]
     np.testing.assert_allclose(t.boxes[2:4, 0], [2.0, 4.0])
+
+
+def _treatment(**overrides: object) -> dict[str, object]:
+    t: dict[str, object] = {"T": 24, "max_gap": 8, "conf_min": 0.1, "center": "frame"}
+    return t | overrides
+
+
+def test_treated_windows_with_switches_off_match_the_ported_treatment(tmp_path: Path) -> None:
+    write_poselift(tmp_path, generate(seed=3, n_train=1, n_test=1))
+    vid = official_split(tmp_path)["train"][0]
+    video = load_video(tmp_path, "train", vid, CFG)
+    x, meta = video_windows(video, 24, 6, 8, 0.1, "frame")
+    off = treated_windows(video, _treatment(scale_guard="off", quality_gate="off"), 6, SIZE)
+    np.testing.assert_array_equal(off.x, x)
+    np.testing.assert_array_equal(off.meta, meta)
+    assert (off.reason == SCORABLE).all()
+
+
+def test_treated_windows_mark_the_reason_with_the_gate_on(tmp_path: Path) -> None:
+    write_poselift(tmp_path, generate(seed=3, n_train=1, n_test=1))
+    vid = official_split(tmp_path)["train"][0]
+    video = load_video(tmp_path, "train", vid, CFG)
+    t = _treatment(
+        scale_guard="on",
+        scale_ratio={"r_med": 0.31, "r_p1": 0.18},
+        quality_gate="on",
+        quality_thresholds={"box_height": 1e6},  # every window is too small
+        border_margin_px=2,
+    )
+    out = treated_windows(video, t, 6, SIZE)
+    assert len(out.x) and (out.reason == CRITERIA.index("box_height") + 1).all()
+
+
+def test_unquoted_yaml_on_is_refused() -> None:
+    with pytest.raises(ValueError, match="quoted"):
+        switch({"quality_gate": True}, "quality_gate")
+    assert switch({}, "quality_gate") is False

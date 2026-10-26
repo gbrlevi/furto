@@ -2,11 +2,15 @@
 
 Causal mode of ADR-0008: the window score goes to the window's last frame; the frame
 score is the maximum over the people present. No smoothing (not defined for operation
-yet). Human-review zone (CLAUDE.md §6): written for the 2C demo, to be reviewed in
+yet). Session 2D adds the "not scorable" state of the quality gate (ADR-0014): a frame
+whose windows were all filtered gets the most normal score and says why.
+Human-review zone (CLAUDE.md §6): written for the 2C and 2D demos, to be reviewed in
 session 3 together with the evaluation module.
 """
 
+from collections import Counter
 from pathlib import Path
+from typing import NamedTuple
 
 import numpy as np
 import numpy.typing as npt
@@ -14,6 +18,11 @@ import numpy.typing as npt
 from tcc.data.schema import VideoPoses
 
 FloatArray = npt.NDArray[np.float64]
+
+# Frame states. NO_WINDOW: nobody, or nobody with a complete window ending here.
+NO_WINDOW, SCORED, NOT_SCORABLE = 0, 1, 2
+STATES = {NO_WINDOW: "no_window", SCORED: "scored", NOT_SCORABLE: "not_scorable"}
+MOST_NORMAL = -np.inf  # score of frames without a scorable window (ADR-0008, ADR-0014)
 
 
 def load_extracted(path: Path, video_id: str, camera: str) -> VideoPoses:
@@ -44,6 +53,45 @@ def last_frame_scores(
             key = (int(tid), int(start) + length - 1)
             out[key] = max(out.get(key, -np.inf), float(s))
     return out
+
+
+def last_frame_reasons(
+    meta: npt.NDArray[np.int64], reason: npt.NDArray[np.int8], length: int
+) -> dict[tuple[int, int], int]:
+    """{(track_id, frame): reason} of the not-scorable windows (reason != 0), each on its
+    last frame."""
+    out: dict[tuple[int, int], int] = {}
+    for (_, tid, start), r in zip(meta.tolist(), reason.tolist(), strict=True):
+        if r:
+            out[(int(tid), int(start) + length - 1)] = int(r)
+    return out
+
+
+class FrameScores(NamedTuple):
+    score: FloatArray  # (n_frames,) maximum over scored people; MOST_NORMAL otherwise
+    state: npt.NDArray[np.int8]  # (n_frames,) NO_WINDOW, SCORED or NOT_SCORABLE
+    reason: npt.NDArray[np.int8]  # (n_frames,) most frequent reason of NOT_SCORABLE frames
+
+
+def frame_scores(
+    per_person: dict[tuple[int, int], float],
+    per_person_reason: dict[tuple[int, int], int],
+    n_frames: int,
+) -> FrameScores:
+    """Frame score, state and reason. A frame where nobody has a scorable window but
+    someone has a filtered one is NOT_SCORABLE and gets MOST_NORMAL, like an empty frame."""
+    fm = frame_max(per_person, n_frames)
+    scored = np.isfinite(fm)
+    reasons: dict[int, Counter[int]] = {}
+    for (_, q), r in per_person_reason.items():
+        if 0 <= q < n_frames and not scored[q]:
+            reasons.setdefault(q, Counter())[r] += 1
+    state = np.where(scored, SCORED, NO_WINDOW).astype(np.int8)
+    reason = np.zeros(n_frames, np.int8)
+    for q, counts in reasons.items():
+        state[q] = NOT_SCORABLE
+        reason[q] = min(counts, key=lambda r: (-counts[r], r))
+    return FrameScores(np.where(scored, fm, MOST_NORMAL), state, reason)
 
 
 def frame_max(per_person: dict[tuple[int, int], float], n_frames: int) -> FloatArray:

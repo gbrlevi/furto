@@ -3,14 +3,16 @@
 Adaptado de luizvitord/poc_furto@9bc4a91 (Luiz Vitor Dantas Freitas).
 """
 
-from typing import NamedTuple
+from collections.abc import Mapping
+from typing import Any, NamedTuple
 
 import numpy as np
 import numpy.typing as npt
 
 from tcc.data.schema import VideoPoses
 from tcc.data.skeleton import V
-from tcc.preprocess.normalize import normalize
+from tcc.preprocess.normalize import ScaleGuard, guarded_scale, normalize, window_scale
+from tcc.preprocess.quality import SCORABLE, gate_reasons, window_quality
 from tcc.preprocess.trajectories import Trajectory, split_trajectories, tracks
 
 
@@ -99,3 +101,53 @@ def video_windows(
     applied to `trajetorias`)."""
     trajectories = split_trajectories(tracks(video), max_gap, length)
     return make_windows(trajectories, length, stride, conf_min, center, video_idx)
+
+
+SWITCHES = ("on", "off")
+
+
+class TreatedWindows(NamedTuple):
+    x: npt.NDArray[np.float32]  # (N, 3, T, 17) normalized
+    meta: npt.NDArray[np.int64]  # (N, 3) [video, track, first frame]
+    reason: npt.NDArray[np.int8]  # (N,) quality-gate reason, SCORABLE when the gate is off
+    scale_source: npt.NDArray[np.int8]  # (N,) SCALE_* of tcc.preprocess.normalize
+
+
+def switch(t: Mapping[str, Any], key: str) -> bool:
+    """`key: "on" | "off"` of a treatment config; absent means off (configs before 2D)."""
+    value = t.get(key, "off")
+    if value not in SWITCHES:
+        raise ValueError(f"{key} must be one of {SWITCHES} (quoted in YAML), got {value!r}")
+    return bool(value == "on")
+
+
+def treated_windows(
+    video: VideoPoses,
+    t: Mapping[str, Any],  # Any: the `treatment` section of the YAML config
+    stride: int,
+    image_size: tuple[int, int],
+    real: npt.NDArray[np.bool_] | None = None,
+    video_idx: int = 0,
+) -> TreatedWindows:
+    """Windows of one video with the treatment of `t`, including the scale guard
+    (ADR-0015, `scale_guard`) and the quality gate (ADR-0014, `quality_gate`)."""
+    trajectories = split_trajectories(tracks(video, real), t["max_gap"], t["T"])
+    raw = raw_windows(trajectories, t["T"], stride, video_idx)
+    n = len(raw.meta)
+    if n == 0:
+        empty = np.zeros(0, np.int8)
+        return TreatedWindows(np.zeros((0, 3, t["T"], V), np.float32), raw.meta, empty, empty)
+    height = raw.boxes[..., 3] - raw.boxes[..., 1]
+    guard = ScaleGuard(**t["scale_ratio"]) if switch(t, "scale_guard") else None
+    x = normalize(raw.keypoints, t["conf_min"], t["center"], height, guard)
+    if guard is None:
+        _, source = window_scale(raw.keypoints, t["conf_min"])
+    else:
+        _, source = guarded_scale(raw.keypoints, height, t["conf_min"], guard)
+    reason = np.full(n, SCORABLE, np.int8)
+    if switch(t, "quality_gate"):
+        quality = window_quality(
+            raw.keypoints, raw.boxes, raw.real, image_size, t["conf_min"], t["border_margin_px"]
+        )
+        reason = gate_reasons(quality, t["quality_thresholds"])
+    return TreatedWindows(np.ascontiguousarray(x.transpose(0, 3, 1, 2)), raw.meta, reason, source)
