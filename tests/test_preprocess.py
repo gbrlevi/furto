@@ -5,7 +5,17 @@ import pytest
 
 from tcc.data.schema import VideoPoses
 from tcc.data.skeleton import HIPS, SHOULDERS
-from tcc.preprocess.normalize import SCALE_HEIGHT, SCALE_ONE, SCALE_TORSO, normalize, window_scale
+from tcc.preprocess.normalize import (
+    SCALE_BOX,
+    SCALE_FLOOR,
+    SCALE_HEIGHT,
+    SCALE_ONE,
+    SCALE_TORSO,
+    ScaleGuard,
+    guarded_scale,
+    normalize,
+    window_scale,
+)
 from tcc.preprocess.occlusion import drop_joints
 from tcc.preprocess.trajectories import Trajectory, split_trajectories, tracks
 from tcc.preprocess.windows import (
@@ -144,3 +154,63 @@ def test_drop_joints_only_zeroes_confidence() -> None:
     assert 0.25 < dropped.mean() < 0.35
     np.testing.assert_array_equal(out.keypoints[..., :2], traj.keypoints[..., :2])
     assert (traj.keypoints[..., 2] == 1).all()
+
+
+GUARD = ScaleGuard(r_med=0.31, r_p1=0.18)
+
+
+def _upright(n: int = 24) -> tuple[np.ndarray, np.ndarray]:
+    """Synthetic walker with every joint valid and the height of its box per frame."""
+    j = _pose_sequence(n)[None]
+    j[..., 2] = 0.9
+    height = j[..., 1].max(-1) - j[..., 1].min(-1) + 10.0
+    return j, height
+
+
+def test_scale_guard_keeps_the_scale_of_a_normal_torso() -> None:
+    j, height = _upright()
+    old, _ = window_scale(j, 0.1)
+    new, source = guarded_scale(j, height, 0.1, GUARD)
+    assert source.tolist() == [SCALE_TORSO]
+    assert new[0] == pytest.approx(float(old[0]), rel=1e-6)
+    np.testing.assert_array_equal(
+        normalize(j, 0.1, "frame", height, GUARD), normalize(j, 0.1, "frame")
+    )
+
+
+def test_scale_guard_uses_the_box_when_the_torso_is_zeroed() -> None:
+    j, height = _upright()
+    j[0, :, SHOULDERS + HIPS, 2] = 0.0
+    scale, source = guarded_scale(j, height, 0.1, GUARD)
+    assert source.tolist() == [SCALE_BOX]
+    assert scale[0] == pytest.approx(GUARD.r_med * height.mean(), rel=1e-6)
+
+
+def test_scale_guard_uses_the_box_when_fewer_than_half_the_frames_measure_the_torso() -> None:
+    j, height = _upright()
+    j[0, :13, SHOULDERS, 2] = 0.0  # 11 of 24 frames keep a torso measure
+    _, source = guarded_scale(j, height, 0.1, GUARD)
+    assert source.tolist() == [SCALE_BOX]
+    j[0, 12, SHOULDERS, 2] = 0.9  # 12 of 24: half is enough
+    _, source = guarded_scale(j, height, 0.1, GUARD)
+    assert source.tolist() == [SCALE_TORSO]
+
+
+def test_scale_guard_measures_one_side_when_the_other_is_missing() -> None:
+    j, height = _upright()
+    j[0, :, [6, 12], 2] = 0.0  # right shoulder and right hip missing
+    scale, source = guarded_scale(j, height, 0.1, GUARD)
+    left = np.linalg.norm(j[0, :, 5, :2] - j[0, :, 11, :2], axis=-1).mean()
+    assert source.tolist() == [SCALE_TORSO]
+    assert scale[0] == pytest.approx(left, rel=1e-5)
+
+
+def test_tiny_torso_is_limited_by_the_floor() -> None:
+    j, height = _upright()
+    hips = j[0, :, HIPS, :2].mean(0)
+    j[0, :, SHOULDERS, :2] = hips[None] + np.array([0.0, -0.5], np.float32)  # 0.5 px torso
+    scale, source = guarded_scale(j, height, 0.1, GUARD)
+    assert source.tolist() == [SCALE_FLOOR]
+    assert scale[0] == pytest.approx(GUARD.r_p1 * height.mean(), rel=1e-6)
+    out = normalize(j, 0.1, "frame", height, GUARD)
+    assert np.abs(out[..., :2]).max() < 10
