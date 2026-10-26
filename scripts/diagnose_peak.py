@@ -75,7 +75,8 @@ def main() -> None:
             raise SystemExit(f"video ids must be quoted strings, got {vid!r}")
         poses = load_extracted(Path(v["extraction_run"]) / f"{vid}_poses.npz", vid, v["camera"])
         trajs = split_trajectories(tracks(poses), t["max_gap"], t["T"])
-        raw, meta = raw_windows(trajs, t["T"], t["stride_eval"])
+        windows = raw_windows(trajs, t["T"], t["stride_eval"])
+        raw, meta = windows.keypoints, windows.meta
         x = normalize(raw, t["conf_min"], t["center"]).transpose(0, 3, 1, 2)
         x = np.ascontiguousarray(x)
         scores = window_scores(model, x, device, loss_norm, config["batch_size"])

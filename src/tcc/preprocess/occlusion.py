@@ -12,8 +12,8 @@ def drop_joints(
     trajectories: list[Trajectory], fraction: float, rng: np.random.Generator
 ) -> list[Trajectory]:
     out = []
-    for tid, frames, keypoints in trajectories:
-        k = keypoints.copy()
+    for t in trajectories:
+        k = t.keypoints.copy()
         k[..., 2][rng.random(k.shape[:2]) < fraction] = 0.0
-        out.append(Trajectory(tid, frames, k))
+        out.append(t._replace(keypoints=k))
     return out

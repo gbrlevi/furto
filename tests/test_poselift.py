@@ -10,6 +10,7 @@ import pytest
 from tcc.data.poselift import (
     PoseLiftFormatError,
     load_video,
+    load_video_with_real,
     parse_video,
     read_pickle,
     sanitize,
@@ -176,3 +177,14 @@ def test_keypoint_order_as_is_keeps_stored_columns() -> None:
     assert v.keypoints[0, 0, :2].tolist() == [100.0, 50.0]
     w = parse_video("1_1", _nan_track(), None, "yx_stored", "xyxy", "one")
     assert w.keypoints[0, 0, :2].tolist() == [50.0, 100.0]
+
+
+def test_rows_with_nan_confidence_are_marked_as_not_real(tmp_path: Path) -> None:
+    path = tmp_path / "Pickle_files" / "Train"
+    path.mkdir(parents=True)
+    with (path / "1_1.pkl").open("wb") as f:
+        pickle.dump(_nan_track(), f)
+    v, real = load_video_with_real(tmp_path, "train", "1_1", CFG)
+    assert real.tolist() == [True, False, False, True]
+    expected = parse_video("1_1", _nan_track(), None, "yx_stored", "xyxy", "interpolate")
+    np.testing.assert_array_equal(v.keypoints, expected.keypoints)

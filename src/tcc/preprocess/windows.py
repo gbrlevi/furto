@@ -3,6 +3,8 @@
 Adaptado de luizvitord/poc_furto@9bc4a91 (Luiz Vitor Dantas Freitas).
 """
 
+from typing import NamedTuple
+
 import numpy as np
 import numpy.typing as npt
 
@@ -24,19 +26,35 @@ def window_starts(n: int, length: int, stride: int) -> list[int]:
     return starts
 
 
+class RawWindows(NamedTuple):
+    keypoints: npt.NDArray[np.float32]  # (N, T, 17, 3) before normalization
+    boxes: npt.NDArray[np.float32]  # (N, T, 4)
+    real: npt.NDArray[np.bool_]  # (N, T) real detection, not interpolated
+    meta: npt.NDArray[np.int64]  # (N, 3) [video, track, first frame]
+
+
 def raw_windows(
     trajectories: list[Trajectory], length: int, stride: int, video_idx: int = 0
-) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
-    """Windows before normalization (N, T, 17, 3) and metadata (N, 3) =
-    [video, track, first frame]."""
-    blocks, meta = [], []
-    for tid, frames, keypoints in trajectories:
-        for s in window_starts(len(frames), length, stride):
-            blocks.append(keypoints[s : s + length])
-            meta.append((video_idx, tid, int(frames[s])))
-    if not blocks:
-        return np.zeros((0, length, V, 3), np.float32), np.zeros((0, 3), np.int64)
-    return np.stack(blocks), np.asarray(meta, np.int64)
+) -> RawWindows:
+    """Windows of the trajectories before normalization."""
+    kps, boxes, real, meta = [], [], [], []
+    for t in trajectories:
+        n = len(t.frames)
+        b = np.zeros((n, 4), np.float32) if t.boxes is None else t.boxes
+        r = np.ones(n, np.bool_) if t.real is None else t.real
+        for s in window_starts(n, length, stride):
+            kps.append(t.keypoints[s : s + length])
+            boxes.append(b[s : s + length])
+            real.append(r[s : s + length])
+            meta.append((video_idx, t.track_id, int(t.frames[s])))
+    if not kps:
+        return RawWindows(
+            np.zeros((0, length, V, 3), np.float32),
+            np.zeros((0, length, 4), np.float32),
+            np.zeros((0, length), np.bool_),
+            np.zeros((0, 3), np.int64),
+        )
+    return RawWindows(np.stack(kps), np.stack(boxes), np.stack(real), np.asarray(meta, np.int64))
 
 
 def make_windows(
@@ -48,11 +66,11 @@ def make_windows(
     video_idx: int = 0,
 ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64]]:
     """Normalized windows (N, 3, T, 17) and metadata (N, 3) = [video, track, first frame]."""
-    raw, meta = raw_windows(trajectories, length, stride, video_idx)
-    if not len(raw):
-        return np.zeros((0, 3, length, V), np.float32), meta
-    x = normalize(raw, conf_min, center).transpose(0, 3, 1, 2)
-    return np.ascontiguousarray(x), meta
+    raw = raw_windows(trajectories, length, stride, video_idx)
+    if not len(raw.meta):
+        return np.zeros((0, 3, length, V), np.float32), raw.meta
+    x = normalize(raw.keypoints, conf_min, center).transpose(0, 3, 1, 2)
+    return np.ascontiguousarray(x), raw.meta
 
 
 def check_no_theft(

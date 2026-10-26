@@ -16,6 +16,7 @@ confidences mark poses interpolated by the authors and are handled by `nan_confi
 `sanitize` is adapted from luizvitord/poc_furto@9bc4a91 (Luiz Vitor Dantas Freitas).
 """
 
+import dataclasses
 import pickle
 import re
 from collections.abc import Mapping
@@ -129,6 +130,23 @@ def interpolate_nan_confidence(
     return out
 
 
+def resolve_nan_confidence(
+    video_id: str,
+    frame_idx: npt.NDArray[np.int64],
+    track_id: npt.NDArray[np.int64],
+    keypoints: npt.NDArray[np.float32],
+    nan_confidence: str,
+) -> npt.NDArray[np.float32]:
+    """Apply the `nan_confidence` policy to (N, 17, 3) keypoints (ADR-0011)."""
+    if nan_confidence not in NAN_CONFIDENCE:
+        raise ValueError(f"nan_confidence must be one of {NAN_CONFIDENCE}")
+    if nan_confidence == "interpolate":
+        keypoints = interpolate_nan_confidence(video_id, frame_idx, track_id, keypoints)
+    if nan_confidence != "keep":
+        keypoints, _, _ = sanitize(keypoints, 0.0 if nan_confidence == "zero" else 1.0)
+    return keypoints
+
+
 def parse_video(
     video_id: str,
     raw: Any,  # Any: unvalidated pickle content
@@ -187,10 +205,7 @@ def parse_video(
     keypoints = keypoints[..., [ix, iy, 2]]
     frame_idx = np.asarray(rows_q, np.int64)
     track_id = np.asarray(rows_pid, np.int64)
-    if nan_confidence == "interpolate":
-        keypoints = interpolate_nan_confidence(video_id, frame_idx, track_id, keypoints)
-    if nan_confidence != "keep":
-        keypoints, _, _ = sanitize(keypoints, 0.0 if nan_confidence == "zero" else 1.0)
+    keypoints = resolve_nan_confidence(video_id, frame_idx, track_id, keypoints, nan_confidence)
     boxes = np.stack(rows_box) if rows_box else np.zeros((0, 4))
     if bbox_format == "xywh":
         boxes = np.concatenate([boxes[:, :2], boxes[:, :2] + boxes[:, 2:]], axis=1)
@@ -225,3 +240,16 @@ def load_video(root: Path, split: str, video_id: str, cfg: Mapping[str, Any]) ->
         bbox_format=cfg["bbox_format"],
         nan_confidence=cfg["nan_confidence"],
     )
+
+
+def load_video_with_real(
+    root: Path, split: str, video_id: str, cfg: Mapping[str, Any]
+) -> tuple[VideoPoses, npt.NDArray[np.bool_]]:
+    """`load_video` plus a (N,) mask of real detections: rows whose confidence the authors
+    left as NaN are poses they interpolated (ADR-0011) and are not real."""
+    kept = load_video(root, split, video_id, {**cfg, "nan_confidence": "keep"})
+    real = np.asarray(~np.isnan(kept.keypoints[..., 2]).any(1), np.bool_)
+    keypoints = resolve_nan_confidence(
+        video_id, kept.frame_idx, kept.track_id, kept.keypoints, cfg["nan_confidence"]
+    )
+    return dataclasses.replace(kept, keypoints=np.ascontiguousarray(keypoints)), real
