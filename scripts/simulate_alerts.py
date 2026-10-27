@@ -92,6 +92,7 @@ def _plot(curves: dict[str, dict[str, Any]], targets: list[float], path: Path) -
         ax.text(c["thresholds"][0], step, f"1 alert = {step:.1f}/h ", color=INK, fontsize=8,
                 va="bottom")  # fmt: skip
         ax.set_yscale("symlog", linthresh=1.0)
+        ax.set_ylim(bottom=0)
         ax.set_xscale("log")
         ax.set_xlabel("threshold (reconstruction error, log)", color=INK)
         ax.set_ylabel("alerts per hour (symlog)", color=INK)
