@@ -6,6 +6,8 @@ with the operational score of the main model (seed 0) at the main operating poin
 threshold, alerts, annotated intervals and not-scorable spans; the slides use the first
 two in alphabetical order. Nothing is chosen by looking at the results. `select: all` is
 only for a dry run on a validation evaluation.
+
+Run as a module, because it reuses the 2D demo drawing: `python -m scripts.render_final`.
 """
 
 import argparse
