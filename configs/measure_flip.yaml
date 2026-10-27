@@ -1,0 +1,41 @@
+# Session 3B, task 2: test-time flip of the HRNet, decided by measurement (P14, item 3).
+# Same clips, same detector and tracker boxes, HRNet-w32 (ADR-0013) with flip on and off.
+# Rule fixed before measuring: mean displacement of the joints (flip on vs off) divided by
+# the torso of the flip-on pose, pooled over every clip below; if it is smaller than the
+# standard deviation of the gaussian noise of the data augmentation (normalized space,
+# `augmentation.noise` of the C1 config), the flip leaves the operation; otherwise it stays.
+# Joints count when their confidence is >= treatment.conf_min in both estimates; poses
+# count when the four torso joints of the flip-on pose are >= conf_min.
+name: measure_flip
+c1_config: configs/c1_base.yaml  # augmentation.noise and treatment.conf_min
+device: cuda:0
+target_fps: 15
+max_output_frames: null  # whole clips
+
+detector:  # ADR-0013
+  name: yolov8m
+  weights: data/weights/ultralytics/yolov8m.pt  # github.com/ultralytics/assets v8.3.0
+  conf: 0.1
+  imgsz: 640
+  half: false
+
+tracker:  # ultralytics 8.4.176 bytetrack.yaml defaults (ADR-0012)
+  tracker_type: bytetrack
+  track_high_thresh: 0.25
+  track_low_thresh: 0.1
+  new_track_thresh: 0.25
+  track_buffer: 30
+  match_thresh: 0.8
+  fuse_score: true
+
+pose:  # ADR-0013
+  name: td-hm_hrnet-w32_8xb64-210e_coco-256x192
+  config: data/weights/mmpose/td-hm_hrnet-w32_8xb64-210e_coco-256x192.py
+  weights: data/weights/mmpose/td-hm_hrnet-w32_8xb64-210e_coco-256x192-81c58e40_20220909.pth
+
+videos:
+  - {id: "G421_2018-03-11_16-15", camera: G421, path: data/raw/meva/2018-03-11.16-15-00.16-20-00.school.G421.r13.avi}
+  - {id: "G508_2018-03-11_16-15", camera: G508, path: data/raw/meva/2018-03-11.16-15-01.16-20-01.bus.G508.r13.avi}
+  - {id: "Shoplifting001", camera: ucf, path: data/raw/ucf_crime/Shoplifting001_x264.mp4}
+  - {id: "Shoplifting005", camera: ucf, path: data/raw/ucf_crime/Shoplifting005_x264.mp4}
+  - {id: "Shoplifting028", camera: ucf, path: data/raw/ucf_crime/Shoplifting028_x264.mp4}
