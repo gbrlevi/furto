@@ -66,6 +66,7 @@ def test_test_mode_metrics_bootstrap_and_occlusion_run_on_synthetic_data(tmp_pat
     assert 0.0 <= m["offline"]["auc_roc"] <= 1.0
     assert set(m["offline"]) == {
         "auc_roc", "auc_pr_theft_average_precision", "auc_pr_normal_trapezoid", "eer",
+        "eer_stgnf",
     }  # fmt: skip
     assert m["theft_frames"] > 0 and m["theft_frames_in_filtered_windows"] is not None
     for op in m["operational"].values():
@@ -77,6 +78,7 @@ def test_test_mode_metrics_bootstrap_and_occlusion_run_on_synthetic_data(tmp_pat
     ]
     om = evaluate._metrics(occluded, thresholds, CONFIG, 15.0)
     assert sum(om["not_scorable"]["center"].values()) >= sum(m["not_scorable"]["center"].values())
+    assert om["not_scorable"]["last"].keys() == m["not_scorable"]["last"].keys()  # per level
     scores = m.pop("_offline_scores")
     summary = evaluate._summary([m, m])
     assert summary["offline.auc_roc"]["std"] == 0.0

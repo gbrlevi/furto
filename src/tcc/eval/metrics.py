@@ -56,6 +56,15 @@ def eer(y: IntArray, s: FloatArray) -> float:
     return float((fpr[i] + fnr[i]) / 2)
 
 
+def eer_stgnf(y: IntArray, s: FloatArray) -> float:
+    """EER as the distributed STG-NF code reports it (Table 3 column, group 27/10/2026):
+    normal frames positive with the normality score (here, the negated anomaly score); the
+    false positive rate at the ROC point where it is closest to the false negative rate."""
+    fpr, tpr, _ = roc_curve(1 - y, -s, pos_label=1)
+    i = int(np.nanargmin(np.abs((1 - tpr) - fpr)))
+    return float(fpr[i])
+
+
 def threshold_metrics(y: IntArray, s: FloatArray, threshold: float) -> dict[str, Any]:
     """Precision, recall, specificity, F1 and H-PRS (harmonic mean of precision, recall and
     specificity; RetailS, Sec. III-B2) of `score > threshold`."""

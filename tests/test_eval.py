@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from scipy.ndimage import gaussian_filter1d
 
+from tcc.eval.alerts import alerts
 from tcc.eval.events import event_hits, event_metrics, label_intervals
 from tcc.eval.frame_scores import (
     fill,
@@ -14,7 +15,7 @@ from tcc.eval.frame_scores import (
     smooth,
     window_frame_scores,
 )
-from tcc.eval.metrics import auc_pr, auc_roc, eer, threshold_metrics
+from tcc.eval.metrics import auc_pr, auc_roc, eer, eer_stgnf, threshold_metrics
 from tcc.eval.threshold import (
     alert_rate_curve,
     alerts_per_hour,
@@ -69,6 +70,17 @@ def test_eer_where_false_positive_and_false_negative_rates_meet() -> None:
     y = np.array([0, 0, 0, 0, 1, 1, 1, 1])
     s = np.array([0.1, 0.2, 0.3, 0.6, 0.4, 0.7, 0.8, 0.9])
     assert eer(y, s) == 0.25
+    assert eer_stgnf(y, s) == 0.25  # both rates meet: the two definitions agree
+
+
+def test_stgnf_eer_is_the_normal_positive_false_positive_rate_where_rates_are_closest() -> None:
+    """Table 3 column (group, 27/10/2026): the STG-NF code reports only the FPR, with normal
+    frames as positives and normality scores; it differs from ours when FPR != FNR."""
+    y = np.array([0, 0, 0, 1, 1, 1, 1])
+    s = np.array([0.1, 0.5, 0.3, 0.4, 0.6, 0.7, 0.2])
+    # normal positive, normality = -s; at the closest ROC point FPR = 1/4 and FNR = 1/3
+    assert eer_stgnf(y, s) == 0.25
+    assert eer(y, s) != eer_stgnf(y, s)
 
 
 def test_threshold_metrics_on_a_known_case() -> None:
@@ -209,13 +221,14 @@ def test_candidate_thresholds_are_unique_quantiles_of_the_sample() -> None:
     assert quantile_threshold(np.array([0.0, np.nan, 10.0]), 0.5) == 5.0
 
 
-def test_event_hit_needs_the_alert_to_start_during_the_event_or_up_to_after_frames_later() -> None:
-    """P17 item 16: an alert hits an event if it starts in it or up to 30 frames after."""
+def test_event_hit_needs_the_fired_frame_in_the_event_or_up_to_after_frames_later() -> None:
+    """Group, 27/10/2026: an alert hits an event if its fired frame (start + 14) falls in
+    the event or up to 30 frames after its end."""
     labels = [np.array([0] * 10 + [1] * 10 + [0] * 60 + [1] * 5 + [0] * 15)]
-    # starts: 5 (before event 1: false), 12 (in event 1), 49 (29 frames after the end of
-    # event 1, a second hit), 50 (30 after: false), 82 (in event 2)
-    starts = [[5, 12, 49, 50, 82]]
-    m = event_hits(labels, starts, after_frames=30, hours=0.5)
+    # fired frames: 5 (before event 1: false), 12 (in event 1), 49 (29 frames after the end
+    # of event 1, a second hit), 50 (30 after: false), 82 (in event 2)
+    fired = [[5, 12, 49, 50, 82]]
+    m = event_hits(labels, fired, after_frames=30, hours=0.5)
     assert m == {
         "events": 2,
         "events_detected": 2,
@@ -226,6 +239,18 @@ def test_event_hit_needs_the_alert_to_start_during_the_event_or_up_to_after_fram
         "false_alerts": 2,
         "false_alerts_per_hour": 4.0,
     }
+
+
+def test_alert_starting_in_the_window_but_firing_after_it_misses_the_event() -> None:
+    """The fired frame, not the start, decides: a run starting 20 frames after the event
+    fires 34 frames after it and misses; one starting 5 frames after fires at 19 and hits."""
+    y = np.array([0] * 10 + [1] * 10 + [0] * 80)
+    hit, miss = np.zeros(100), np.zeros(100)
+    hit[25:45], miss[40:60] = 1.0, 1.0  # 20-frame runs above 0.5
+    found = [alerts(s, np.ones(100, np.bool_), 0.5, 15, 30) for s in (hit, miss)]
+    assert [a.fired for f in found for a in f] == [39, 54]
+    m = event_hits([y, y], [[a.fired for a in f] for f in found], after_frames=30, hours=1.0)
+    assert (m["events_detected"], m["alerts_hitting"], m["false_alerts"]) == (1, 1, 1)
 
 
 def test_event_hits_without_alerts_or_events() -> None:

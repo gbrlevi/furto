@@ -2,6 +2,14 @@
 
 Escrito na sessão 3 (26/10/2026), antes de qualquer abertura do teste, com as decisões do grupo P13, P15, P16 e P17 (`docs/tcc/sessoes/SESSAO_3.md`). Este arquivo e as configurações desta pasta são commitados antes do primeiro `--final` e não mudam depois (ADR-0009). Qualquer ajuste exige uma configuração congelada nova, e a nova abertura do teste é contada.
 
+**Revisão de 27/10/2026, pedida pelo grupo antes de qualquer abertura do teste.** Três mudanças:
+
+- a regra de evento passa a usar o quadro do disparo (seção 4.2);
+- a fração de quadros "não pontuáveis" passa a ser reportada por nível de oclusão (seção 6);
+- a EER como o STG-NF calcula entra como coluna da Tabela 3 (seção 4.1).
+
+As configurações `.yaml` não mudaram. A primeira versão está no commit `3b24891`.
+
 ## 1. Como o teste é aberto
 
 - Só por `scripts/evaluate.py --config configs/frozen/<nome>.yaml --final`, com autorização explícita do usuário na sessão.
@@ -49,7 +57,8 @@ Nenhuma das sensibilidades é escolhida pelo resultado. Todas são reportadas.
 | AUC-ROC | `roc_auc_score`, furto positivo |
 | **AUC-PR principal** | precisão média (`average_precision_score`), **furto positivo** |
 | AUC-PR comparável à Tabela 3 | trapézio sobre a curva precisão–revocação (`auc(recall, precision)`), **normal positivo** com o escore negado, como no código do STG-NF |
-| EER | média da taxa de falsos positivos e da de falsos negativos no ponto da ROC em que estão mais próximas |
+| **EER principal** | média da taxa de falsos positivos e da de falsos negativos no ponto da ROC em que estão mais próximas |
+| EER comparável à Tabela 3 | como o código do STG-NF: com normal positivo e o escore negado, a taxa de falsos positivos no ponto da ROC em que ela está mais próxima da de falsos negativos (igual ao código distribuído no teste de caracterização) |
 
 - **Número otimista:** o centro da janela usa 0,8 s de quadros futuros, então este número é otimista em relação à operação.
 - **Diferença no tratamento:** a regra de escore reproduz o código distribuído (teste de caracterização), mas as janelas não são as mesmas. O nosso tratamento gera também a última janela de cada trajetória e interpola lacunas até k = 8.
@@ -64,8 +73,8 @@ Nenhuma das sensibilidades é escolhida pelo resultado. Todas são reportadas.
 - **Situação do H-PRS:** a definição foi conferida na fonte primária, o RetailS (arXiv 2603.04723v1, Seç. III-B2), que a apresenta sem citar fonte anterior. A conferência foi por leitura automatizada da versão HTML, duas vezes. Por isso o H-PRS entra.
 - **Eventos:**
   - um evento é um trecho contínuo de quadros com rótulo 1 num vídeo;
-  - um alerta acerta o evento se o início do alerta cair durante o evento ou até 30 quadros (2 s) depois do fim;
-  - o início do alerta é o primeiro quadro do trecho acima do limiar, não o quadro em que o alerta dispara (15 quadros depois).
+  - um alerta acerta o evento se o **quadro do disparo** cair durante o evento ou até 30 quadros (2 s) depois do fim;
+  - o quadro do disparo é o 15º quadro seguido acima do limiar (início do trecho + 14), em que o alerta chega ao operador (revisão de 27/10/2026; a versão anterior usava o início do trecho).
 - **Medidas de evento:**
   - revocação de eventos (eventos acertados / eventos);
   - precisão de alertas (alertas que acertam algum evento / alertas);
@@ -95,7 +104,8 @@ Nenhuma das sensibilidades é escolhida pelo resultado. Todas são reportadas.
 - **Ordem no tratamento:** a oclusão é aplicada depois da interpolação e antes da normalização e do filtro. Assim o filtro vê a pose ocluída, como veria na operação.
 - **Máscara:** é a mesma para todas as sementes (gerador com semente `[0, fração × 1000, índice do vídeo]`).
 - **Limiar:** o de cada semente, da validação sem oclusão.
-- **Métricas:** as mesmas das seções 4.1 a 4.3.
+- **Métricas:** as mesmas das seções 4.1 a 4.3, para cada nível.
+- **Não pontuáveis por nível** (revisão de 27/10/2026): para cada nível de oclusão, a fração de quadros "não pontuáveis", por motivo e nas duas atribuições, como na seção 4.3. Como o filtro vê a pose ocluída, a oclusão pode tirar quadros do escore em vez de mudar o escore.
 
 ## 7. Renderizações depois do `--final` (P16, item 12)
 

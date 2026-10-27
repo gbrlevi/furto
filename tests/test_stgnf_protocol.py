@@ -17,7 +17,7 @@ import numpy as np
 import pytest
 
 from tcc.eval.frame_scores import most_normal, post_process, window_frame_scores
-from tcc.eval.metrics import auc_pr, auc_roc, eer
+from tcc.eval.metrics import auc_pr, auc_roc, eer, eer_stgnf
 
 ROOT = Path(__file__).resolve().parents[1]
 STGNF = ROOT / "data" / "raw" / "poselift" / "STG-NF"
@@ -114,3 +114,4 @@ def test_our_protocol_reproduces_the_distributed_stgnf_scoring(tmp_path: Path) -
     assert auc_roc(y, s) == pytest.approx(float(theirs["auc_roc"]), abs=1e-12)
     assert auc_pr(y, s, "normal", "trapezoid") == pytest.approx(float(theirs["auc_pr"]), abs=1e-12)
     assert abs(eer(y, s) - float(theirs["eer"])) < EER_TOLERANCE
+    assert eer_stgnf(y, s) == float(theirs["eer"])  # Table 3 column, same definition

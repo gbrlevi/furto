@@ -32,7 +32,7 @@ from tcc.eval.frame_scores import (
     post_process,
     window_frame_scores,
 )
-from tcc.eval.metrics import auc_pr, auc_roc, eer, threshold_metrics
+from tcc.eval.metrics import auc_pr, auc_roc, eer, eer_stgnf, threshold_metrics
 from tcc.eval.threshold import alerts_per_hour, candidate_thresholds, threshold_for_rate
 from tcc.model.stgcn_ae import STGCNAutoencoder
 from tcc.model.train import window_scores
@@ -140,6 +140,7 @@ def _metrics(
             "auc_pr_theft_average_precision": auc_pr(y, s, "theft", "average_precision"),
             "auc_pr_normal_trapezoid": auc_pr(y, s, "normal", "trapezoid"),
             "eer": eer(y, s),
+            "eer_stgnf": eer_stgnf(y, s),  # Table 3 column (group, 27/10/2026)
         }
     a = config["alerts"]
     last = np.concatenate([v["last"] for v in videos])
@@ -155,7 +156,7 @@ def _metrics(
             "frame": threshold_metrics(y, np.where(np.isfinite(last), last, -np.inf), thr),
             "events": event_hits(
                 labels,
-                [[al.start for al in f] for f in found],
+                [[al.fired for al in f] for f in found],
                 config["events"]["after_frames"],
                 hours,
             ),  # fmt: skip

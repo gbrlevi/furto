@@ -1,8 +1,9 @@
 """Event metrics: theft events detected by an alert and alerts with no event.
 
-Human-review zone (CLAUDE.md §6). `event_hits` is the rule of the group (P17 item 16):
-an event is a run of theft frames in one video, and an alert hits it if the alert starts
-during the event or up to `after_frames` after its end. `event_metrics` is the original
+Human-review zone (CLAUDE.md §6). `event_hits` is the rule of the group (P17 item 16,
+revised 27/10/2026): an event is a run of theft frames in one video, and an alert hits it
+if the frame where the alert fires (start + min_alert_frames - 1) falls in the event or up
+to `after_frames` after its end. `event_metrics` is the original
 PoC rule (overlap with a tolerance on both sides), kept only for the port equivalence.
 
 Adaptado de luizvitord/poc_furto@9bc4a91 (Luiz Vitor Dantas Freitas).
@@ -53,17 +54,18 @@ def event_metrics(
 
 def event_hits(
     labels: Sequence[npt.NDArray[np.int64]],
-    alert_starts: Sequence[Sequence[int]],
+    fired_frames: Sequence[Sequence[int]],
     after_frames: int,
     hours: float,
 ) -> dict[str, Any]:
-    """Event recall, alert precision and false alerts per hour of video (P17 item 16)."""
+    """Event recall, alert precision and false alerts per hour of video, from the frame
+    where each alert fires (group, 27/10/2026)."""
     events = detected = n_alerts = hitting = 0
-    for y, starts in zip(labels, alert_starts, strict=True):
+    for y, fired in zip(labels, fired_frames, strict=True):
         theft = label_intervals(y)
         events += len(theft)
-        n_alerts += len(starts)
-        hits = [[a <= s < b + after_frames for a, b in theft] for s in starts]
+        n_alerts += len(fired)
+        hits = [[a <= f < b + after_frames for a, b in theft] for f in fired]
         hitting += sum(any(h) for h in hits)
         detected += sum(any(h[e] for h in hits) for e in range(len(theft)))
     false = n_alerts - hitting
