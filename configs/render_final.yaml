@@ -1,0 +1,8 @@
+# Session 3, E.12: renders declared in configs/frozen/PREDECLARED.md, run only after --final.
+evaluate_run: null  # set to the runs/<...>_evaluate_main_test folder of the --final run
+model_index: 0  # main configuration, seed 0
+operating_point: 5  # main N (P17 item 13)
+select: theft  # every test video with annotated theft; "all" only for a validation dry run
+limit: null
+scale: 0.5  # 1920 x 1080 -> 960 x 540, skeletons only
+conf_min_draw: 0.3  # drawing only

@@ -89,6 +89,9 @@ def _video(
         "reasons_center": frame_reasons(w.meta, w.reason, T, n, "center"),
         "reasons_last": frame_reasons(w.meta, w.reason, T, n, "last"),
         "filtered": filtered_coverage(w.meta, w.reason, T, n),
+        "window_meta": w.meta,
+        "window_scores": scores,
+        "window_reason": w.reason,
     }
 
 
@@ -240,7 +243,8 @@ def main() -> None:
             run_dir / f"frames_model{k}.npz",
             ids=np.array([v["id"] for v in videos]),
             **{f"{v['id']}__{key}": v[key] for v in videos
-               for key in ("labels", "last", "reasons_center", "reasons_last", "filtered")},
+               for key in ("labels", "last", "reasons_center", "reasons_last", "filtered",
+                           "window_meta", "window_scores", "window_reason")},
             **{f"{v['id']}__offline": s for v, s in zip(videos, offline_scores[-1], strict=True)},
         )  # fmt: skip
 
