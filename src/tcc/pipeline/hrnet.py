@@ -136,10 +136,14 @@ def export_onnx(model: Any, path: Path, fp16: bool, opset: int) -> None:
 
 
 def add_cuda_dll_dirs() -> list[str]:
-    """Put the CUDA and cuDNN DLLs of torch and, when installed, the TensorRT DLLs
-    (`tensorrt_libs`) on the DLL search path, so ONNX Runtime providers can load them on
-    Windows. Returns the directories added."""
+    """Put on the DLL search path the CUDA and cuDNN 8 DLLs of torch and, when installed,
+    the cuDNN 9 of the ONNX Runtime CUDA 12 build (`nvidia.cudnn`) and the TensorRT DLLs
+    (`tensorrt_libs`), so the ONNX Runtime providers load on Windows. Returns the
+    directories added."""
     dirs = [str(Path(torch.__file__).parent / "lib")]
+    cudnn9 = importlib.util.find_spec("nvidia.cudnn")  # cuDNN 9 of the ORT CUDA 12 build
+    if cudnn9 is not None and cudnn9.submodule_search_locations:
+        dirs.append(str(Path(next(iter(cudnn9.submodule_search_locations))) / "bin"))
     spec = importlib.util.find_spec("tensorrt_libs")
     if spec is not None and spec.submodule_search_locations:
         dirs.append(str(next(iter(spec.submodule_search_locations))))
