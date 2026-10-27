@@ -7,7 +7,7 @@ threshold, alerts, annotated intervals and not-scorable spans; the slides use th
 two in alphabetical order. Nothing is chosen by looking at the results. `select: all` is
 only for a dry run on a validation evaluation.
 
-Run as a module, because it reuses the 2D demo drawing: `python -m scripts.render_final`.
+Run with `python -m scripts.render_final` (also works as a plain script).
 """
 
 import argparse
@@ -17,7 +17,6 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from scripts.demo_score import _people, _timeline
 from tcc.data.poselift import load_video_with_real
 from tcc.eval.alerts import alerts
 from tcc.eval.events import label_intervals
@@ -32,6 +31,7 @@ from tcc.pipeline.scoring import (
 )
 from tcc.preprocess.quality import REASONS
 from tcc.utils.config import load_config
+from tcc.utils.demo_video import people_by_frame, timeline
 from tcc.utils.render import annotate_frame, blank_canvas
 from tcc.utils.run_logger import start_run
 
@@ -74,7 +74,7 @@ def main() -> None:
         fs = FrameScores(np.where(scored, last, MOST_NORMAL), state.astype(np.int8), reasons)
         found = alerts(last, scored, threshold, a["min_alert_frames"], a["merge_gap_frames"])
         theft = label_intervals(z[f"{vid}__labels"])
-        _timeline(run_dir / f"{vid}_timeline.png", f"{vid} (operational, N = {n}/h)", fs, fps,
+        timeline(run_dir / f"{vid}_timeline.png", f"{vid} (operational, N = {n}/h)", fs, fps,
                   threshold, found, theft)  # fmt: skip
 
         meta, scores = z[f"{vid}__window_meta"], z[f"{vid}__window_scores"]
@@ -82,7 +82,7 @@ def main() -> None:
         per_person = last_frame_scores(meta[ok], scores[ok].astype(np.float32), T)
         per_reason = last_frame_reasons(meta, z[f"{vid}__window_reason"].astype(np.int8), T)
         poses, _ = load_video_with_real(Path(dataset["root"]), split, vid, dataset)
-        people = _people(poses, t)
+        people = people_by_frame(poses, t)
         alert_frames = np.zeros(len(last), np.bool_)
         for al in found:
             alert_frames[al.fired : al.end] = True
