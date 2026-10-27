@@ -1,0 +1,29 @@
+# Session 3B, task 6: online pipeline up to "score > threshold" (scripts/online_score.py).
+# Demonstration of the pipeline on public videos: not a detection metric (ADR-0005).
+name: online_pipeline
+c1_run: runs/20261026-225403_train_c1_base  # latest production C1 (session 3, task A2.5)
+# N = 5 alerts per hour (session 3, decision 13), computed on this model's validation in the
+# operation stream; NOT frozen yet (frozen configs are task D.9 of session 3).
+threshold: 0.26677928556193076
+threshold_origin: "N = 5 alerts/h on the validation of runs/20261026-225403_train_c1_base; runs/20261026-231403_simulate_alerts (commit 16a3f04)"
+min_alert_frames: 15  # 1 s at 15 fps (session 2D)
+merge_gap_frames: 30  # alerts less than 2 s apart are merged
+device: cuda
+batch_size: 1024
+equivalence_rtol: 1.0e-5  # online vs offline window scores (GPU, batches of other sizes)
+pose_config: configs/online_pose.yaml
+pose_python: C:/Users/power/git/furto/.venv-pose/Scripts/python.exe
+internal_dir: data/interim/online_3b  # video over real frames: never in git, thesis or slides
+conf_min_draw: 0.3  # drawing only
+
+videos:
+  - id: "G421_2018-03-11_16-15"  # MEVA, CC BY 4.0: the pipeline scoring real people
+    camera: G421
+    path: data/raw/meva/2018-03-11.16-15-00.16-20-00.school.G421.r13.avi
+    internal_scale: 0.5
+    public_scale: 0.5
+  - id: "Shoplifting001"  # UCF-Crime, internal demo only; about two people per frame
+    camera: ucf
+    path: data/raw/ucf_crime/Shoplifting001_x264.mp4
+    internal_scale: 3.0
+    public_scale: 3.0

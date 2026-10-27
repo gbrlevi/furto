@@ -7,7 +7,7 @@ c1_config: configs/c1_base.yaml  # augmentation.noise and treatment.conf_min
 device: cuda:0
 target_fps: 15
 max_output_frames: null
-flip_test: FLIP_DECISION  # outcome of task 2 (runs/<measure_flip>)
+flip_test: true  # kept by the rule of task 2: runs/20261027-001725_measure_flip (mean 0.088 >= 0.01)
 opset: 17
 
 detector:  # ADR-0013
