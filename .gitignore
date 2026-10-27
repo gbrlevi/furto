@@ -31,6 +31,8 @@ Thumbs.db
 
 # Exceção à regra *.md (Gabriel, 12/10/2026): o ROADMAP é versionado
 !docs/ROADMAP.md
+# e as regras pré-declaradas do teste, que o portão exige commitadas (ADR-0009, sessão 3)
+!configs/frozen/PREDECLARED.md
 
 # Ambientes separados: PoC original (sessão 2) e pilha de pose (sessão 2B)
 .venv-legacy/

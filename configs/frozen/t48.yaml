@@ -1,0 +1,13 @@
+# FROZEN (ADR-0009): never edit; a change needs a new file and a new test opening.
+# Sensitivity: T = 48 (gate thresholds measured with T = 24), seed 0. Rules: configs/frozen/PREDECLARED.md.
+name: t48
+models:
+  - {run: runs/20261027-000826_train_c1_t48, sha256: 00b3a1f99e4a50c2c6b673bfa9eb950eac2a22b031012f60d690911883de4bd0}  # seed 0
+operating_points: {main: 5, secondary: [2, 10]}  # P17 item 13; threshold per model
+alerts: {min_alert_frames: 15, merge_gap_frames: 30}  # session 2D; fixed before N
+threshold_candidates: {low: 0.5, high: 1.0, n: 1000}  # quantiles of scored validation frames
+offline: {frame_score: center, sigmas: [1, 2, 3, 4, 5, 6]}  # STG-NF protocol (ADR-0008)
+events: {after_frames: 30}  # alert starts in the event or up to 2 s after (P17 item 16)
+bootstrap: {n_resamples: 2000, seed: 0, level: 0.95}  # stratified, mean over seeds (item 17)
+device: cuda  # same device as the threshold
+batch_size: 1024

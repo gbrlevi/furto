@@ -1,0 +1,18 @@
+# FROZEN (ADR-0009): never edit; a change needs a new file and a new test opening.
+# Main configuration: quality gate and scale guard on, T = 24, NaN interpolated, seeds 0-4. Rules: configs/frozen/PREDECLARED.md.
+name: main
+models:
+  - {run: runs/20261026-225403_train_c1_base, sha256: dffe059ec586bcef6bfd870c23792dc1f86f1b47565087124aeb87e5326fe29b}  # seed 0
+  - {run: runs/20261026-234913_train_c1_seed1, sha256: 5f45dabcda1b03055411a8010284f47e8f1e8ae224a8d4d9c1084be514f65282}  # seed 1
+  - {run: runs/20261026-235159_train_c1_seed2, sha256: 3ba2b1a32bdfe0698f9e60f0b9eaae37814034f4a3bceb61ce4dd1a924e6af54}  # seed 2
+  - {run: runs/20261026-235637_train_c1_seed3, sha256: a35a00c34b6a08210244c4bece385828c25f895109aaee91e146dfa09c855c6e}  # seed 3
+  - {run: runs/20261027-000138_train_c1_seed4, sha256: 25b10751a46c7e2517a94cb331b9566a4f19328ed2a18d31317b1c1c0df173f3}  # seed 4
+operating_points: {main: 5, secondary: [2, 10]}  # P17 item 13; threshold per model
+alerts: {min_alert_frames: 15, merge_gap_frames: 30}  # session 2D; fixed before N
+threshold_candidates: {low: 0.5, high: 1.0, n: 1000}  # quantiles of scored validation frames
+offline: {frame_score: center, sigmas: [1, 2, 3, 4, 5, 6]}  # STG-NF protocol (ADR-0008)
+events: {after_frames: 30}  # alert starts in the event or up to 2 s after (P17 item 16)
+bootstrap: {n_resamples: 2000, seed: 0, level: 0.95}  # stratified, mean over seeds (item 17)
+device: cuda  # same device as the threshold
+batch_size: 1024
+occlusion: {fractions: [0.1, 0.2, 0.3, 0.4, 0.5], seed: 0}  # test, over the main seeds
