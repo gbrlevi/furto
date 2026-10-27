@@ -1,0 +1,8 @@
+# Session 3, task A2.2: border criterion check, per camera, on the PoseLift training
+# partition only (all 104 official training videos; no test video is opened).
+dataset_config: configs/poselift.yaml
+image_size: [1920, 1080]  # PoseLift paper
+# Rule fixed before measuring (session 3, A2.2): the resolution is confirmed only if, in
+# every camera, the largest excess is at most this fraction of the width and of the height.
+# Requested after seeing the MEVA G421 alert (P16, item 8).
+max_excess_fraction: 0.05

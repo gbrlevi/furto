@@ -17,6 +17,19 @@ CONVENTIONS = ("all_frames", "frames_with_person", "person_frames")
 NOSE, L_SHOULDER, R_SHOULDER, L_ANKLE, R_ANKLE = 0, 5, 6, 15, 16
 
 
+def box_excess(
+    boxes: npt.NDArray[np.float32], image_size: tuple[int, int]
+) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
+    """Horizontal and vertical pixels by which each x1, y1, x2, y2 box leaves the
+    (width, height) image; 0 for boxes inside it."""
+    w, h = image_size
+    x1, y1, x2, y2 = boxes.T
+    zero = np.zeros(len(boxes), np.float32)
+    horizontal = np.maximum.reduce([zero, -x1, x2 - w]).astype(np.float32)
+    vertical = np.maximum.reduce([zero, -y1, y2 - h]).astype(np.float32)
+    return horizontal, vertical
+
+
 def frame_counts(videos: Sequence[VideoPoses]) -> dict[str, dict[str, int]]:
     """Normal and theft frames under three counting conventions.
 

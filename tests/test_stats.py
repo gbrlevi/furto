@@ -3,6 +3,7 @@ import numpy as np
 from tcc.data.schema import VideoPoses
 from tcc.data.stats import (
     axis_evidence,
+    box_excess,
     confidence_histograms,
     frame_counts,
     nan_rows_vs_fractional_boxes,
@@ -139,3 +140,13 @@ def test_short_trajectory_share_counts_rows_and_frames() -> None:
         "frames": 13,
         "frames_lost": 3,
     }
+
+
+def test_box_excess_measures_how_far_each_box_leaves_the_image() -> None:
+    boxes = np.array(
+        [[10, 10, 100, 100], [-30, 5, 50, 60], [1800, 1000, 1950, 1100], [0, -4, 1920, 1080]],
+        np.float32,
+    )
+    horizontal, vertical = box_excess(boxes, (1920, 1080))
+    assert horizontal.tolist() == [0, 30, 30, 0]
+    assert vertical.tolist() == [0, 0, 20, 4]
