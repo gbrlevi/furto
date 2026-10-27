@@ -41,6 +41,14 @@ def test_config_outside_the_frozen_folder_is_refused(repo: Path) -> None:
         check_frozen(repo / "configs" / "free.yaml", repo)
 
 
+def test_config_outside_the_repository_is_refused(repo: Path, tmp_path: Path) -> None:
+    outside = tmp_path / "elsewhere" / "configs" / "frozen" / "main.yaml"
+    outside.parent.mkdir(parents=True)
+    outside.write_bytes(b"name: main\n")
+    with pytest.raises(FrozenConfigError, match="frozen"):
+        check_frozen(outside, repo)
+
+
 def test_uncommitted_frozen_config_is_refused(repo: Path) -> None:
     (repo / "configs" / "frozen" / "new.yaml").write_text("name: new\n", encoding="utf-8")
     with pytest.raises(FrozenConfigError, match="not committed"):

@@ -36,8 +36,11 @@ def sha256(path: Path) -> str:
 def check_frozen(config: Path, repo: Path = Path(".")) -> dict[str, str]:
     """Raise FrozenConfigError unless `config` may open the test; else return its hashes
     (file bytes and git blob, which does not depend on line endings) and the commit."""
-    rel = config.resolve().relative_to(repo.resolve())
-    if rel.parent != FROZEN_DIR:
+    try:
+        rel = config.resolve().relative_to(repo.resolve())
+    except ValueError:
+        rel = config
+    if rel.is_absolute() or rel.parent != FROZEN_DIR:
         raise FrozenConfigError(f"{rel}: --final needs a configuration in {FROZEN_DIR}/")
     predeclared = FROZEN_DIR / PREDECLARED
     for path in (rel, predeclared):
