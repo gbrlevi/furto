@@ -12,6 +12,7 @@ import numpy.typing as npt
 from tcc.data.schema import VideoPoses
 from tcc.data.skeleton import V
 from tcc.preprocess.normalize import ScaleGuard, guarded_scale, normalize, window_scale
+from tcc.preprocess.occlusion import drop_joints
 from tcc.preprocess.quality import SCORABLE, gate_reasons, window_quality
 from tcc.preprocess.trajectories import Trajectory, split_trajectories, tracks
 
@@ -128,10 +129,20 @@ def treated_windows(
     image_size: tuple[int, int],
     real: npt.NDArray[np.bool_] | None = None,
     video_idx: int = 0,
+    drop_fraction: float = 0.0,
+    rng: np.random.Generator | None = None,
 ) -> TreatedWindows:
     """Windows of one video with the treatment of `t`, including the scale guard
-    (ADR-0015, `scale_guard`) and the quality gate (ADR-0014, `quality_gate`)."""
+    (ADR-0015, `scale_guard`) and the quality gate (ADR-0014, `quality_gate`).
+
+    `drop_fraction` > 0 simulates occlusion (test robustness, P13 item 3): that fraction of
+    joints loses its confidence after interpolation and before normalization and gate.
+    """
     trajectories = split_trajectories(tracks(video, real), t["max_gap"], t["T"])
+    if drop_fraction > 0:
+        if rng is None:
+            raise ValueError("occlusion needs an rng")
+        trajectories = drop_joints(trajectories, drop_fraction, rng)
     raw = raw_windows(trajectories, t["T"], stride, video_idx)
     n = len(raw.meta)
     if n == 0:

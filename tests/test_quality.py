@@ -147,3 +147,23 @@ def test_unquoted_yaml_on_is_refused() -> None:
     with pytest.raises(ValueError, match="quoted"):
         switch({"quality_gate": True}, "quality_gate")
     assert switch({}, "quality_gate") is False
+
+
+def test_occlusion_is_applied_before_normalization_and_gate(tmp_path: Path) -> None:
+    """Simulated occlusion on the test (P13 item 3): joints lose their confidence before
+    the treatment, so the quality gate sees the occluded pose, as it would in operation."""
+    write_poselift(tmp_path, generate(seed=3, n_train=1, n_test=1))
+    vid = official_split(tmp_path)["train"][0]
+    video = load_video(tmp_path, "train", vid, CFG)
+    t = _treatment(scale_guard="off", quality_gate="on", border_margin_px=2,
+                   quality_thresholds={"mean_confidence": 0.5})  # fmt: skip
+    clean = treated_windows(video, t, 6, SIZE)
+    same = treated_windows(video, t, 6, SIZE, drop_fraction=0.0, rng=np.random.default_rng(0))
+    np.testing.assert_array_equal(same.x, clean.x)
+    occluded = treated_windows(video, t, 6, SIZE, drop_fraction=0.5, rng=np.random.default_rng(0))
+    np.testing.assert_array_equal(occluded.meta, clean.meta)
+    zero = lambda w: float((w.x[:, 2] == 0).mean())  # noqa: E731
+    assert zero(occluded) > zero(clean) + 0.3
+    assert (occluded.reason != SCORABLE).sum() > (clean.reason != SCORABLE).sum()
+    with pytest.raises(ValueError, match="rng"):
+        treated_windows(video, t, 6, SIZE, drop_fraction=0.5)

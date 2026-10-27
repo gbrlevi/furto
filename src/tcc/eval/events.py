@@ -1,6 +1,9 @@
 """Event metrics: theft events detected by an alert and alerts with no event.
 
-Human-review zone (CLAUDE.md §6). Not in the Relatório (proposed in the port).
+Human-review zone (CLAUDE.md §6). `event_hits` is the rule of the group (P17 item 16):
+an event is a run of theft frames in one video, and an alert hits it if the alert starts
+during the event or up to `after_frames` after its end. `event_metrics` is the original
+PoC rule (overlap with a tolerance on both sides), kept only for the port equivalence.
 
 Adaptado de luizvitord/poc_furto@9bc4a91 (Luiz Vitor Dantas Freitas).
 """
@@ -45,4 +48,32 @@ def event_metrics(
         "event_recall": detected / events if events else float("nan"),
         "alerts": n_alerts,
         "false_alerts": false,
+    }
+
+
+def event_hits(
+    labels: Sequence[npt.NDArray[np.int64]],
+    alert_starts: Sequence[Sequence[int]],
+    after_frames: int,
+    hours: float,
+) -> dict[str, Any]:
+    """Event recall, alert precision and false alerts per hour of video (P17 item 16)."""
+    events = detected = n_alerts = hitting = 0
+    for y, starts in zip(labels, alert_starts, strict=True):
+        theft = label_intervals(y)
+        events += len(theft)
+        n_alerts += len(starts)
+        hits = [[a <= s < b + after_frames for a, b in theft] for s in starts]
+        hitting += sum(any(h) for h in hits)
+        detected += sum(any(h[e] for h in hits) for e in range(len(theft)))
+    false = n_alerts - hitting
+    return {
+        "events": events,
+        "events_detected": detected,
+        "event_recall": detected / events if events else float("nan"),
+        "alerts": n_alerts,
+        "alerts_hitting": hitting,
+        "alert_precision": hitting / n_alerts if n_alerts else float("nan"),
+        "false_alerts": false,
+        "false_alerts_per_hour": false / hours if hours > 0 else float("nan"),
     }

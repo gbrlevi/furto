@@ -4,8 +4,16 @@ import numpy as np
 import pytest
 from scipy.ndimage import gaussian_filter1d
 
-from tcc.eval.events import event_metrics, label_intervals
-from tcc.eval.frame_scores import fill, most_normal, post_process, smooth, window_frame_scores
+from tcc.eval.events import event_hits, event_metrics, label_intervals
+from tcc.eval.frame_scores import (
+    fill,
+    filtered_coverage,
+    frame_reasons,
+    most_normal,
+    post_process,
+    smooth,
+    window_frame_scores,
+)
 from tcc.eval.metrics import auc_pr, auc_roc, eer, threshold_metrics
 from tcc.eval.threshold import (
     alert_rate_curve,
@@ -199,3 +207,45 @@ def test_candidate_thresholds_are_unique_quantiles_of_the_sample() -> None:
     sample = np.arange(101, dtype=np.float64)
     np.testing.assert_array_equal(candidate_thresholds(sample, 0.5, 1.0, 3), [50, 75, 100])
     assert quantile_threshold(np.array([0.0, np.nan, 10.0]), 0.5) == 5.0
+
+
+def test_event_hit_needs_the_alert_to_start_during_the_event_or_up_to_after_frames_later() -> None:
+    """P17 item 16: an alert hits an event if it starts in it or up to 30 frames after."""
+    labels = [np.array([0] * 10 + [1] * 10 + [0] * 60 + [1] * 5 + [0] * 15)]
+    # starts: 5 (before event 1: false), 12 (in event 1), 49 (29 frames after the end of
+    # event 1, a second hit), 50 (30 after: false), 82 (in event 2)
+    starts = [[5, 12, 49, 50, 82]]
+    m = event_hits(labels, starts, after_frames=30, hours=0.5)
+    assert m == {
+        "events": 2,
+        "events_detected": 2,
+        "event_recall": 1.0,
+        "alerts": 5,
+        "alerts_hitting": 3,
+        "alert_precision": 0.6,
+        "false_alerts": 2,
+        "false_alerts_per_hour": 4.0,
+    }
+
+
+def test_event_hits_without_alerts_or_events() -> None:
+    m = event_hits([np.zeros(20, np.int64)], [[]], after_frames=30, hours=1.0)
+    assert m["events"] == 0 and np.isnan(m["event_recall"]) and np.isnan(m["alert_precision"])
+
+
+def test_frame_reasons_mark_frames_reached_only_by_filtered_windows() -> None:
+    """ADR-0014: a frame is not scorable when windows land on it but none is scorable."""
+    meta = np.array([[0, 1, 0], [0, 2, 0], [0, 1, 1], [0, 2, 2]], np.int64)
+    reason = np.array([2, 0, 3, 4], np.int8)
+    center = frame_reasons(meta, reason, 4, 8, "center")
+    # frame 2: track 1 filtered (2) and track 2 scorable -> scored (0); frame 3: reason 3
+    # frame 4: reason 4; others: no window (0)
+    np.testing.assert_array_equal(center, [0, 0, 0, 3, 4, 0, 0, 0])
+    last = frame_reasons(meta, reason, 4, 8, "last")
+    np.testing.assert_array_equal(last, [0, 0, 0, 0, 3, 4, 0, 0])
+
+
+def test_filtered_coverage_marks_frames_inside_any_filtered_window() -> None:
+    meta = np.array([[0, 1, 0], [0, 2, 6]], np.int64)
+    covered = filtered_coverage(meta, np.array([1, 0], np.int8), 4, 12)
+    np.testing.assert_array_equal(covered, [1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0])

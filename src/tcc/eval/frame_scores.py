@@ -50,6 +50,51 @@ def window_frame_scores(
     return out
 
 
+def _landing_frames(meta: npt.NDArray[np.int64], length: int, mode: str) -> npt.NDArray[np.int64]:
+    if mode not in ("center", "last"):
+        raise ValueError(f"mode must be center or last, got {mode!r}")
+    out: npt.NDArray[np.int64] = meta[:, 2] + (length // 2 if mode == "center" else length - 1)
+    return out
+
+
+def frame_reasons(
+    meta: npt.NDArray[np.int64],
+    reason: npt.NDArray[np.int8],
+    length: int,
+    n_frames: int,
+    mode: str,
+) -> npt.NDArray[np.int8]:
+    """(n_frames,) quality-gate reason of frames reached only by not-scorable windows
+    (ADR-0014) under the `center` or `last` attribution; 0 where a scorable window lands or
+    nothing lands. With several reasons, the most frequent (ties: the smallest code)."""
+    frames = _landing_frames(meta, length, mode)
+    inside = (frames >= 0) & (frames < n_frames)
+    frames, reason = frames[inside], reason[inside]
+    scored = np.zeros(n_frames, np.bool_)
+    scored[frames[reason == 0]] = True
+    codes = np.unique(reason[reason != 0])
+    counts = np.zeros((len(codes), n_frames), np.int64)
+    for i, r in enumerate(codes):
+        np.add.at(counts[i], frames[reason == r], 1)
+    out = np.zeros(n_frames, np.int8)
+    if len(codes):
+        best = codes[np.argmax(counts, axis=0)]  # argmax takes the first (smallest) on ties
+        hit = counts.sum(axis=0) > 0
+        out[hit & ~scored] = best[hit & ~scored]
+    return out
+
+
+def filtered_coverage(
+    meta: npt.NDArray[np.int64], reason: npt.NDArray[np.int8], length: int, n_frames: int
+) -> npt.NDArray[np.bool_]:
+    """(n_frames,) frames inside at least one not-scorable window, whatever the attribution
+    (descriptive measure of the ADR-0014 blind spot)."""
+    out = np.zeros(n_frames, np.bool_)
+    for start in meta[reason != 0, 2].tolist():
+        out[max(start, 0) : min(start + length, n_frames)] = True
+    return out
+
+
 def most_normal(frame_scores: Sequence[FloatArray]) -> float:
     """Smallest finite score over all videos of the evaluated set (STG-NF replaces the
     frames without a score by the most normal score of the whole set)."""
