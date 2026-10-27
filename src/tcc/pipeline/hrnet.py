@@ -106,12 +106,13 @@ class _Network(torch.nn.Module):
 
     def __init__(self, model: Any) -> None:
         super().__init__()
-        self.backbone, self.neck, self.head = model.backbone, model.neck, model.head
+        self.backbone, self.head = model.backbone, model.head
         self.with_neck = model.with_neck
+        self.neck = model.neck if model.with_neck else None
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         feats = self.backbone(x)
-        if self.with_neck:
+        if self.neck is not None:
             feats = self.neck(feats)
         out: torch.Tensor = self.head.forward(feats)
         return out
