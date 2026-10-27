@@ -19,7 +19,7 @@ from tcc.data.poselift import load_video_with_real
 from tcc.data.split import official_split, split_train_val
 from tcc.model.dataset import WindowDataset
 from tcc.model.stgcn_ae import STGCNAutoencoder, count_parameters
-from tcc.model.train import train
+from tcc.model.train import loss_spikes, train
 from tcc.preprocess.normalize import SCALE_SOURCES
 from tcc.preprocess.quality import REASONS, SCORABLE
 from tcc.preprocess.windows import check_no_theft, treated_windows
@@ -74,6 +74,32 @@ def _plot(history: list[dict[str, float]], best_epoch: int, path: Path, title: s
     for side in ["top", "right"]:
         ax.spines[side].set_visible(False)
     ax.legend(frameon=False, fontsize=8)
+    fig.tight_layout()
+    fig.savefig(path, dpi=120)
+    plt.close(fig)
+
+
+def _plot_instrumentation(history: list[dict[str, float]], path: Path, title: str) -> None:
+    """Gradient norm and largest batch loss per epoch (session 3, P16 item 11)."""
+    epochs = [h["epoch"] for h in history]
+    fig, axes = plt.subplots(2, 1, figsize=(7, 5.2), sharex=True)
+    series = [
+        (axes[0], [("grad_norm_max", TRAIN_COLOR, "max"), ("grad_norm_mean", VAL_COLOR, "mean")],
+         "gradient norm (log)"),
+        (axes[1], [("batch_loss_max", TRAIN_COLOR, "largest batch"),
+                   ("train_loss", VAL_COLOR, "epoch mean")], "train loss (log)"),
+    ]  # fmt: skip
+    for ax, lines, ylabel in series:
+        for key, color, name in lines:
+            ax.plot(epochs, [h[key] for h in history], color=color, linewidth=1.5, label=name)
+        ax.set_yscale("log")
+        ax.set_ylabel(ylabel, color=INK)
+        ax.grid(axis="y", color=GRID, linewidth=0.8)
+        for side in ["top", "right"]:
+            ax.spines[side].set_visible(False)
+        ax.legend(frameon=False, fontsize=8)
+    axes[1].set_xlabel("epoch", color=INK)
+    axes[0].set_title(title, color=INK)
     fig.tight_layout()
     fig.savefig(path, dpi=120)
     plt.close(fig)
@@ -151,6 +177,15 @@ def main() -> None:
         writer.writerows(result.history)
     _plot(result.history, result.best_epoch, run_dir / "loss_curve.png",
           f"C1 training on PoseLift, {args.config.stem} (validation only)")  # fmt: skip
+    _plot_instrumentation(result.history, run_dir / "instrumentation.png",
+                          f"{args.config.stem}: gradient and batch loss per epoch")  # fmt: skip
+    spike = config["train"]["spike_check"]
+    spikes = loss_spikes(
+        [h["val_loss"] for h in result.history],
+        spike["factor"],
+        spike["recover_epochs"],
+        spike["recover_factor"],
+    )
     seconds = [h["seconds"] for h in result.history]
     results = {
         "parameters": count_parameters(model),
@@ -159,6 +194,9 @@ def main() -> None:
         "windows": {"train": int(len(x_train)), "val": int(len(x_val))},
         "treatment_counts": {"train": counts_train, "val": counts_val},
         "epochs_run": len(result.history),
+        "epoch_limit": config["train"]["epochs"],
+        "stopped_early": result.stopped_early,
+        "val_loss_spikes": spikes,
         "best_epoch": result.best_epoch,
         "best_val_loss": result.best_val_loss,
         "seconds_per_epoch": {"mean": float(np.mean(seconds)), "max": float(np.max(seconds))},
@@ -173,6 +211,8 @@ def main() -> None:
     (run_dir / "results.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
     print(run_dir)
     print(json.dumps({k: v for k, v in results.items() if k != "val_ids"}, indent=2))
+    if not result.stopped_early:
+        print("EPOCH LIMIT REACHED without early stopping: stop and report (P16, item 10)")
 
 
 if __name__ == "__main__":

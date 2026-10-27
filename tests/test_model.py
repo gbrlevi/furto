@@ -6,7 +6,7 @@ from tcc.data.skeleton import JOINT_NAMES, MIRROR_PAIRS
 from tcc.model.dataset import WindowDataset, mirror
 from tcc.model.loss import weighted_error
 from tcc.model.stgcn_ae import STGCNAutoencoder, count_parameters, state_dict_from_poc
-from tcc.model.train import train
+from tcc.model.train import TrainResult, loss_spikes, train
 from tcc.preprocess.trajectories import Trajectory
 from tcc.preprocess.windows import make_windows
 from tcc.utils.seed import set_seed
@@ -123,3 +123,44 @@ def test_overfits_a_single_batch() -> None:
     first, last = result.history[0]["train_loss"], result.history[-1]["train_loss"]
     assert last < 0.005
     assert last < 1e-3 * first
+
+
+def _small_training(epochs: int, patience: int) -> TrainResult:
+    rng = set_seed(0)
+    v = generate(seed=3, n_train=1, n_test=0)[0]
+    trajs = [Trajectory(p, idx, seq) for p, (idx, seq) in v.people.items()]
+    x, _ = make_windows(trajs, 24, 6, 0.1, "frame")
+    ds = WindowDataset(x[:32], rng)
+    cfg = {
+        "batch_size": 8,
+        "lr": 1e-3,
+        "epochs": epochs,
+        "patience": patience,
+        "lr_plateau": {"enabled": False},
+    }
+    model = STGCNAutoencoder(dropout=0.0)
+    return train(model, ds, ds, cfg, "conf", torch.device("cpu"), torch.Generator().manual_seed(0))
+
+
+def test_history_records_gradient_norm_and_largest_batch_loss_once_per_epoch() -> None:
+    """Session 3, A2.4: instrumentation of the epoch-24 spike (P16, item 11)."""
+    result = _small_training(epochs=4, patience=10**6)
+    assert [h["epoch"] for h in result.history] == [1, 2, 3, 4]
+    for h in result.history:
+        assert {"grad_norm_mean", "grad_norm_max", "batch_loss_max"} <= h.keys()
+        assert 0 < h["grad_norm_mean"] <= h["grad_norm_max"]
+        assert h["batch_loss_max"] >= h["train_loss"] > 0
+
+
+def test_result_says_whether_early_stopping_ended_the_training() -> None:
+    assert not _small_training(epochs=2, patience=10**6).stopped_early
+    assert _small_training(epochs=50, patience=1).stopped_early
+
+
+def test_loss_spike_is_an_epoch_at_twice_the_previous_best_and_recovery_is_checked() -> None:
+    val = [0.5, 0.1, 0.05, 0.04, 0.09, 0.045, 0.03, 0.2, 0.19, 0.18, 0.17, 0.16, 0.15, 0.03]
+    spikes = loss_spikes(val, factor=2.0, recover_epochs=5, recover_factor=1.25)
+    assert spikes == [
+        {"epoch": 5, "val_loss": 0.09, "best_before": 0.04, "recovered_epoch": 6},
+        {"epoch": 8, "val_loss": 0.2, "best_before": 0.03, "recovered_epoch": None},
+    ]

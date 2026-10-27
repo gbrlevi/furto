@@ -45,9 +45,13 @@ augmentation:
 
 train:
   seed: 0
-  epochs: 60
+  epochs: 200  # maximum; early stopping by validation loss (P16, item 10)
   patience: 8
   batch_size: 256
   lr: 0.001
   lr_plateau: {enabled: true, factor: 0.5, patience: 3}  # not in the Relatório
   eval_batch_size: 1024
+  # Spike of the validation loss (P16, item 11), fixed before the session 3 runs: an epoch
+  # at >= factor x the best of the previous epochs; back to trend if within recover_factor
+  # x that best in the next recover_epochs epochs. Measured only, never acted upon.
+  spike_check: {factor: 2.0, recover_epochs: 5, recover_factor: 1.25}
