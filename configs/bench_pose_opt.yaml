@@ -1,0 +1,58 @@
+# Session 3B, tasks 3 and 4: HRNet cost per stage and ONNX Runtime versions of the network,
+# on the same tracked boxes as the MMPose reference. Limit of the optimization (fixed before
+# measuring): the mean displacement against MMPose, normalized by the torso, must stay below
+# the augmentation noise of the C1 config (same metric as task 2).
+name: bench_pose_opt
+c1_config: configs/c1_base.yaml  # augmentation.noise and treatment.conf_min
+device: cuda:0
+target_fps: 15
+max_output_frames: null
+flip_test: FLIP_DECISION  # outcome of task 2 (runs/<measure_flip>)
+opset: 17
+
+detector:  # ADR-0013
+  name: yolov8m
+  weights: data/weights/ultralytics/yolov8m.pt
+  conf: 0.1
+  imgsz: 640
+  half: false
+
+tracker:  # ultralytics 8.4.176 bytetrack.yaml defaults (ADR-0012)
+  tracker_type: bytetrack
+  track_high_thresh: 0.25
+  track_low_thresh: 0.1
+  new_track_thresh: 0.25
+  track_buffer: 30
+  match_thresh: 0.8
+  fuse_score: true
+
+pose:  # ADR-0013
+  name: td-hm_hrnet-w32_8xb64-210e_coco-256x192
+  config: data/weights/mmpose/td-hm_hrnet-w32_8xb64-210e_coco-256x192.py
+  weights: data/weights/mmpose/td-hm_hrnet-w32_8xb64-210e_coco-256x192-81c58e40_20220909.pth
+
+onnx_variants:
+  ort_cuda_fp32:
+    fp16: false
+    providers: [{name: CUDAExecutionProvider}]
+  ort_cuda_fp16:
+    fp16: true
+    providers: [{name: CUDAExecutionProvider}]
+  ort_tensorrt_fp16:  # FP32 graph, FP16 engine built by TensorRT 10.0.1 (ORT 1.18.1 build)
+    fp16: false
+    providers:
+      - name: TensorrtExecutionProvider
+        options:
+          trt_fp16_enable: true
+          trt_engine_cache_enable: true
+          trt_engine_cache_path: C:/Users/power/AppData/Local/Temp/claude/c--Users-power-git-furto/34c281c6-c08e-4eb3-a47f-973aa3bc10f4/scratchpad/3b/trt_cache
+          trt_profile_min_shapes: "input:1x3x256x192"
+          trt_profile_opt_shapes: "input:4x3x256x192"
+          trt_profile_max_shapes: "input:16x3x256x192"
+      - name: CUDAExecutionProvider
+
+videos:  # about two people per frame in the UCF-Crime clips (session 2B)
+  - {id: "Shoplifting001", camera: ucf, path: data/raw/ucf_crime/Shoplifting001_x264.mp4}
+  - {id: "Shoplifting005", camera: ucf, path: data/raw/ucf_crime/Shoplifting005_x264.mp4}
+  - {id: "Shoplifting028", camera: ucf, path: data/raw/ucf_crime/Shoplifting028_x264.mp4}
+  - {id: "G421_2018-03-11_16-15", camera: G421, path: data/raw/meva/2018-03-11.16-15-00.16-20-00.school.G421.r13.avi}
