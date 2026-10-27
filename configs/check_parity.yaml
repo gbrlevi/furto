@@ -1,0 +1,14 @@
+# Session 3B, task 5: parity of our extraction with the PoseLift training partition.
+# Main environment, no GPU. Our poses: the variant of the measure_flip run that matches the
+# flip decision of task 2 (same detector, tracker and HRNet-w32 as the operation).
+c1_config: configs/c1_base.yaml  # dataset config, conf_min and T
+ours_run: runs/20261027-001725_measure_flip
+ours_variant: flip_on  # the flip stays in the operation (task 2)
+ours:
+  meva:
+    - {id: "G421_2018-03-11_16-15", camera: G421}
+    - {id: "G508_2018-03-11_16-15", camera: G508}
+  ucf:
+    - {id: "Shoplifting001", camera: ucf}
+    - {id: "Shoplifting005", camera: ucf}
+    - {id: "Shoplifting028", camera: ucf}

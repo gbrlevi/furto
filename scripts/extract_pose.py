@@ -48,7 +48,8 @@ def main() -> None:
 
     results = {}
     for video in config["videos"]:
-        poses, stats = extract_video(Path(video["path"]), video["id"], video["camera"], config)
+        extracted, stats = extract_video(Path(video["path"]), video["id"], video["camera"], config)
+        poses = extracted["pose"]
         arrays = {
             "frame_idx": poses.frame_idx,
             "track_id": poses.track_id,

@@ -1,0 +1,27 @@
+# Session 3B, task 6: pose process of the online pipeline (scripts/online_pose.py).
+# Same detector, tracker and pose model as the extraction (ADR-0012, ADR-0013).
+device: cuda:0
+target_fps: 15  # frames read at the pace of the video, never skipped (P14, item 4)
+max_output_frames: null
+
+detector:  # ADR-0013
+  name: yolov8m
+  weights: data/weights/ultralytics/yolov8m.pt
+  conf: 0.1
+  imgsz: 640
+  half: false
+
+tracker:  # ultralytics 8.4.176 bytetrack.yaml defaults (ADR-0012)
+  tracker_type: bytetrack
+  track_high_thresh: 0.25
+  track_low_thresh: 0.1
+  new_track_thresh: 0.25
+  track_buffer: 30
+  match_thresh: 0.8
+  fuse_score: true
+
+pose:  # ADR-0013
+  name: td-hm_hrnet-w32_8xb64-210e_coco-256x192
+  config: data/weights/mmpose/td-hm_hrnet-w32_8xb64-210e_coco-256x192.py
+  weights: data/weights/mmpose/td-hm_hrnet-w32_8xb64-210e_coco-256x192-81c58e40_20220909.pth
+  flip_test: true  # kept by the rule of task 2: runs/20261027-001725_measure_flip (mean 0.088 >= 0.01)
