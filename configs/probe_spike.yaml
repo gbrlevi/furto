@@ -1,0 +1,6 @@
+# Session 3, D.10: investigation of the validation-loss spikes (P16 item 11; spikes in 2 of
+# the 5 main seeds). Descriptive only: training is not changed.
+train_run: runs/20261027-000138_train_c1_seed4  # spike at epoch 57; the checkpoint is epoch 56
+epoch: 57
+device: cpu
+batch_size: 1024
