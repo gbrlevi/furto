@@ -164,3 +164,13 @@ def test_loss_spike_is_an_epoch_at_twice_the_previous_best_and_recovery_is_check
         {"epoch": 5, "val_loss": 0.09, "best_before": 0.04, "recovered_epoch": 6},
         {"epoch": 8, "val_loss": 0.2, "best_before": 0.03, "recovered_epoch": None},
     ]
+
+
+def test_largest_loss_batch_indices_are_recorded_once_per_epoch() -> None:
+    """Session 3, P17 item 14: which windows formed the batch of largest loss."""
+    result = _small_training(epochs=3, patience=10**6)
+    assert len(result.max_loss_batches) == 3
+    for idx in result.max_loss_batches:
+        assert 0 < len(idx) <= 8
+        assert len(set(idx)) == len(idx)
+        assert all(0 <= i < 32 for i in idx)

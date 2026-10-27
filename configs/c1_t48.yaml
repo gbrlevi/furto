@@ -1,0 +1,58 @@
+# C1 sensitivity T = 48, seed 0 (session 3, D.10). Identical to c1_base.yaml except
+# treatment.T; the quality-gate thresholds measured with T = 24 are kept. Validation only.
+dataset_config: configs/poselift.yaml  # yx_stored (ADR-0010), interpolate (ADR-0011)
+
+split:
+  val_fraction: 0.15  # by video (rule 3)
+  seed: 0
+
+treatment:
+  T: 48  # sensitivity (P13 item 3); the only difference from c1_base.yaml
+  stride_train: 6
+  stride_eval: 1
+  max_gap: 8  # k: gaps up to k frames are interpolated (PoC default, candidate)
+  conf_min: 0.1  # PoC default, candidate
+  center: frame  # per-frame hip centre (Relatório); "window" is the alternative
+  # Scale guard (ADR-0015); ratios from runs/20261026-203227_measure_quality (commit 79958eb)
+  scale_guard: "on"  # quoted: unquoted on is a YAML boolean
+  scale_ratio: {r_med: 0.31258456657615197, r_p1: 0.18402915642414405}
+  # Quality gate (ADR-0014); thresholds from the same run (percentile rule of session 2D).
+  # border_fraction is left out: 237 training boxes fall outside 1920 x 1080.
+  quality_gate: "on"
+  quality_thresholds:
+    mean_confidence: 0.21910946890711785
+    real_fraction: 0.6345833333333335
+    torso_fraction: 0.0
+    box_height: 94.25
+  border_margin_px: 2
+
+model:
+  channels: [32, 64, 64]
+  latent: 16
+  k_t: 9
+  dropout: 0.1
+
+loss:
+  loss_norm: conf  # ADR-0007
+  mask_target: false  # ADR-0007
+
+augmentation:
+  enabled: true
+  p_drop_joint: 0.1
+  rotation_deg: 10
+  scale: 0.1
+  noise: 0.01
+  p_mirror: 0.5
+
+train:
+  seed: 0
+  epochs: 200  # maximum; early stopping by validation loss (P16, item 10)
+  patience: 8
+  batch_size: 256
+  lr: 0.001
+  lr_plateau: {enabled: true, factor: 0.5, patience: 3}  # not in the Relatório
+  eval_batch_size: 1024
+  # Spike of the validation loss (P16, item 11), fixed before the session 3 runs: an epoch
+  # at >= factor x the best of the previous epochs; back to trend if within recover_factor
+  # x that best in the next recover_epochs epochs. Measured only, never acted upon.
+  spike_check: {factor: 2.0, recover_epochs: 5, recover_factor: 1.25}

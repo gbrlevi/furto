@@ -63,6 +63,14 @@ def write_meta(
     )
 
 
+def record_artifact(run_dir: Path, name: str, path: Path) -> None:
+    """Add the SHA-256 of a file the run produced (e.g. its checkpoint) to its meta.json."""
+    meta_path = run_dir / "meta.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta.setdefault("artifacts", {})[name] = _sha256(path)
+    meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
 def _versions() -> dict[str, Any]:
     libraries = {
         dist.metadata["Name"].lower(): dist.version for dist in importlib.metadata.distributions()

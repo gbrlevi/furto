@@ -24,22 +24,26 @@ from tcc.preprocess.normalize import SCALE_SOURCES
 from tcc.preprocess.quality import REASONS, SCORABLE
 from tcc.preprocess.windows import check_no_theft, treated_windows
 from tcc.utils.config import load_config
-from tcc.utils.run_logger import start_run
+from tcc.utils.run_logger import record_artifact, start_run
 from tcc.utils.seed import set_seed
 
 TRAIN_COLOR, VAL_COLOR, INK, GRID = "#2a78d6", "#eb6834", "#3d3d3a", "#e4e3df"
 
 
-def _windows(root: Path, ids: list[str], dataset: dict, t: dict) -> tuple[np.ndarray, dict]:
-    """Scorable windows of the videos (ADR-0014) and counts of gate reasons and scale
-    sources (ADR-0015) over all windows."""
-    blocks, reasons, sources = [], [], []
+def _windows(
+    root: Path, ids: list[str], dataset: dict, t: dict
+) -> tuple[np.ndarray, dict, list[tuple[str, int, int]]]:
+    """Scorable windows of the videos (ADR-0014), counts of gate reasons and scale
+    sources (ADR-0015) over all windows, and (video, track, first frame) of each
+    scorable window in dataset order."""
+    blocks, reasons, sources, names = [], [], [], []
     size = (int(dataset["image_size"][0]), int(dataset["image_size"][1]))
     for vid in ids:
         video, real = load_video_with_real(root, "train", vid, dataset)
         w = treated_windows(video, t, t["stride_train"], size, real)
         check_no_theft(w.meta, video.frame_labels, t["T"])
         blocks.append(w.x[w.reason == SCORABLE])
+        names += [(vid, int(tr), int(q)) for _, tr, q in w.meta[w.reason == SCORABLE].tolist()]
         reasons.append(w.reason)
         sources.append(w.scale_source)
     reason, source = np.concatenate(reasons), np.concatenate(sources)
@@ -52,7 +56,7 @@ def _windows(root: Path, ids: list[str], dataset: dict, t: dict) -> tuple[np.nda
             for k, name in SCALE_SOURCES.items()
         },
     }
-    return np.concatenate(blocks), counts
+    return np.concatenate(blocks), counts, names
 
 
 def _plot(history: list[dict[str, float]], best_epoch: int, path: Path, title: str) -> None:
@@ -121,7 +125,7 @@ def main() -> None:
         official_split(root)["train"], config["split"]["val_fraction"], config["split"]["seed"]
     )
     t = config["treatment"]
-    (x_train, counts_train), (x_val, counts_val) = (
+    (x_train, counts_train, names_train), (x_val, counts_val, _) = (
         _windows(root, train_ids, dataset, t),
         _windows(root, val_ids, dataset, t),
     )
@@ -171,6 +175,13 @@ def main() -> None:
         {"state": result.best_state, "model": m, "epoch": result.best_epoch, "val_ids": val_ids},
         run_dir / "model.pt",
     )
+    record_artifact(run_dir, "model.pt", run_dir / "model.pt")  # P17 item 18
+    batches = [
+        {"epoch": h["epoch"], "batch_loss_max": h["batch_loss_max"],
+         "windows": [names_train[i] for i in idx]}
+        for h, idx in zip(result.history, result.max_loss_batches, strict=True)
+    ]  # fmt: skip
+    (run_dir / "max_loss_batches.json").write_text(json.dumps(batches), encoding="utf-8")
     with open(run_dir / "history.csv", "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(result.history[0]))
         writer.writeheader()

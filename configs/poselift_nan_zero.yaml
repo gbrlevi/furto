@@ -1,0 +1,13 @@
+# PoseLift as distributed on the authors' Google Drive (docs/tcc/FORMATO_POSELIFT.md).
+root: data/raw/poselift
+fps: 15
+image_size: [1920, 1080]  # paper; 237 training boxes fall outside it (session 2D)
+
+# Stored keypoint triplets are (y, x, c) and boxes are (x1, y1, x2, y2), although the
+# README says XYC and XYWH (ADR-0010). as_is keeps the stored columns (original PoC).
+keypoint_order: yx_stored
+bbox_format: xyxy
+
+# NaN confidence marks poses interpolated by the authors (ADR-0011).
+# interpolate (production) | one (original PoC) | zero (sensitivity, validation only)
+nan_confidence: zero  # sensitivity (P13 item 3); the only difference from poselift.yaml

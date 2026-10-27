@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from tcc.utils.run_logger import start_run, write_meta
+from tcc.utils.run_logger import record_artifact, start_run, write_meta
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -139,3 +139,14 @@ def test_write_meta_uses_the_given_directory(repo: Path, tmp_path: Path) -> None
 def test_records_full_config(repo: Path, tmp_path: Path) -> None:
     config = {"T": 24, "S": 6, "paths": {"data": "data/raw/poselift"}, "k": [1, 2]}
     assert _run(repo, tmp_path, config=config)["config"] == config
+
+
+def test_record_artifact_adds_the_file_sha256_to_meta(repo: Path, tmp_path: Path) -> None:
+    """Session 3, P17 item 18: the checkpoint hash goes to the run's meta.json."""
+    run_dir = start_run("probe", config={}, seeds={}, runs_root=tmp_path / "runs", repo=repo)
+    ckpt = run_dir / "model.pt"
+    ckpt.write_bytes(b"weights")
+    record_artifact(run_dir, "model.pt", ckpt)
+    meta = _meta(run_dir)
+    assert meta["artifacts"]["model.pt"] == hashlib.sha256(b"weights").hexdigest()
+    assert meta["config"] == {}

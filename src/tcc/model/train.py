@@ -24,6 +24,21 @@ class TrainResult:
     best_epoch: int = 0
     best_val_loss: float = float("inf")
     stopped_early: bool = False  # False: the epoch limit ended the training
+    # per epoch, dataset indices of the windows in the batch of largest loss (P17 item 14)
+    max_loss_batches: list[list[int]] = field(default_factory=list)
+
+
+class _Indexed(Dataset[tuple[int, torch.Tensor, torch.Tensor]]):
+    """Item i of `base` together with i; same sampling order as `base` (instrumentation)."""
+
+    def __init__(self, base: Dataset[tuple[torch.Tensor, torch.Tensor]]) -> None:
+        self.base = base
+
+    def __len__(self) -> int:
+        return len(self.base)  # type: ignore[arg-type]
+
+    def __getitem__(self, i: int) -> tuple[int, torch.Tensor, torch.Tensor]:
+        return (i, *self.base[i])
 
 
 @torch.no_grad()
@@ -83,7 +98,7 @@ def train(
     loss of the epoch (session 3, P16 item 11). They are measured, never acted upon.
     """
     train_loader = DataLoader(
-        train_set,
+        _Indexed(train_set),
         cfg["batch_size"],
         shuffle=True,
         drop_last=len(train_set) > cfg["batch_size"],  # type: ignore[arg-type]
@@ -105,8 +120,8 @@ def train(
         start = time.perf_counter()
         model.train()
         total, n = 0.0, 0
-        grad_norms, batch_losses = [], []
-        for inputs, target in train_loader:
+        grad_norms, batch_losses, batch_indices = [], [], []
+        for index, inputs, target in train_loader:
             e = weighted_error(model(inputs.to(device)), target.to(device), loss_norm)
             e = e[~torch.isnan(e)]
             if len(e) == 0:
@@ -117,6 +132,7 @@ def train(
             grad_norms.append(gradient_norm(model))
             optimizer.step()
             batch_losses.append(loss.item())
+            batch_indices.append(index.tolist())
             total += batch_losses[-1] * len(e)
             n += len(e)
         val_loss = mean_loss(model, val_loader, device, loss_norm)
@@ -133,6 +149,8 @@ def train(
             "seconds": time.perf_counter() - start,
         }
         result.history.append(row)
+        if batch_losses:
+            result.max_loss_batches.append(batch_indices[int(np.argmax(batch_losses))])
         log(row)
         if val_loss < result.best_val_loss - 1e-6:
             result.best_val_loss, result.best_epoch, stale = val_loss, epoch, 0
