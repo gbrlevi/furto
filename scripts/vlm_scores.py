@@ -91,7 +91,12 @@ def main() -> None:
         step, span, hop, _ = clip_layout(
             n_est, fps0, config["sample_fps"], config["frames_per_clip"], config["hop_seconds"]
         )
-        frames, n, fps = frames_at(path, set(range(0, n_est + span, step)))
+        wanted = {
+            int(s) + k * step
+            for s in range(0, n_est + span, hop)
+            for k in range(config["frames_per_clip"])
+        }  # the hop need not be a multiple of the step
+        frames, n, fps = frames_at(path, wanted)
         starts = clip_layout(
             n, fps, config["sample_fps"], config["frames_per_clip"], config["hop_seconds"]
         )[3]
