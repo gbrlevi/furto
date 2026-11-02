@@ -1,0 +1,16 @@
+# Development variant of configs/vlm_theft.yaml, chosen after its result on the 21 videos:
+# the best prompt there (shoplifting) on a square crop around the people of each clip,
+# 16 frames at 4 per second. Compared with the uncropped prompt on the same 21 videos only.
+model: Qwen/Qwen2.5-VL-3B-Instruct
+quantization: nf4
+sample_fps: 4.0
+frames_per_clip: 16 # 4 s per clip
+hop_seconds: 2.0
+prompts:
+  shoplifting: "Is someone shoplifting in this video? Answer Yes or No."
+crop: {boxes: data/features/people, margin: 0.2, size: 336} # yolov8m boxes every 8 frames
+videos: data/raw/ucf_crime
+normal_videos: data/raw/ucf_crime/normal_test
+holdout_labels: configs/uca_holdout_labels.yaml
+out: data/features/vlm_crop4
+base: configs/video_theft.yaml

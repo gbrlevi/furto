@@ -16,7 +16,7 @@ from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2_5_VLForConditi
 
 from tcc.utils.config import load_config
 from tcc.utils.run_logger import start_run
-from tcc.video.clips import parse_annotations
+from tcc.video.clips import parse_annotations, people_crop
 from tcc.video.vlm import clip_layout, yes_no_margin
 
 
@@ -98,6 +98,14 @@ def main() -> None:
         scores = {p: np.zeros(len(starts)) for p in todo}
         for c, s in enumerate(starts):
             clip = np.stack([frames[s + k * step] for k in range(config["frames_per_clip"])])
+            crop = config.get("crop")
+            if crop:
+                boxes = np.load(Path(crop["boxes"]) / f"{path.stem}.npz")["boxes"]
+                h, w = clip.shape[1:3]
+                x1, y1, x2, y2 = people_crop(boxes, s, s + span - 1, w, h, crop["margin"])
+                clip = np.stack(
+                    [cv2.resize(f[y1:y2, x1:x2], (crop["size"], crop["size"])) for f in clip]
+                )
             for p in todo:
                 inputs = processor(
                     text=[texts[p]],
