@@ -15,3 +15,8 @@ normal_videos: data/raw/ucf_crime/normal_test
 holdout_labels: configs/uca_holdout_labels.yaml
 out: data/features/vlm
 base: configs/video_theft.yaml # annotations, normal split, alert rules, null draws, seed
+# Frozen on 02/11/2026 after the development runs (runs/20261102-142938_vlm_theft_eval_dev,
+# runs/20261102-150027_vlm_theft_eval_dev, runs/20261102-155054_vlm_theft_eval_dev): within-
+# video AUC 0.595 (shoplifting), 0.545 (crop, 8 frames), 0.596 (crop, 16 frames). Tie-break
+# declared here, after seeing them: within 0.01, the cheaper one (no crop, 1 s per clip).
+frozen_prompt: shoplifting
