@@ -1,0 +1,17 @@
+# Zero-shot theft scores from a video-language model. Fixed before looking at any score.
+# Stage "dev": the three prompts on the 21 officially annotated videos; the prompt with the
+# highest within-video AUC there is the only one run on the held-out and normal videos.
+model: Qwen/Qwen2.5-VL-3B-Instruct
+quantization: nf4 # 4-bit weights, float16 compute: fits the 6 GB GPU
+sample_fps: 2.0
+frames_per_clip: 8 # 4 s per clip
+hop_seconds: 2.0
+prompts:
+  hide_or_run: "Does anyone in this video take an item and hide it in their clothes, pocket or bag, or run off with it without paying? Answer Yes or No."
+  shoplifting: "Is someone shoplifting in this video? Answer Yes or No."
+  hands: "Watch the hands of the people in this shop. Does a person put a product into their pocket, clothes or bag? Answer Yes or No."
+videos: data/raw/ucf_crime
+normal_videos: data/raw/ucf_crime/normal_test
+holdout_labels: configs/uca_holdout_labels.yaml
+out: data/features/vlm
+base: configs/video_theft.yaml # annotations, normal split, alert rules, null draws, seed
