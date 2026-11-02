@@ -43,7 +43,7 @@ def crop(frame: np.ndarray, b: tuple[int, int, int, int]) -> np.ndarray:
 def main() -> None:
     config = load_config(Path(sys.argv[1]))
     run = start_run(
-        "hand_object_probe", config=config, seeds={}, models={"clip": {"weights": config["model"]}}
+        "hand_object_probe", config=config, seeds={}, models={"clip": {"hub_id": config["model"]}}
     )
     model = CLIPModel.from_pretrained(config["model"]).to("cuda").eval()
     processor = CLIPProcessor.from_pretrained(config["model"])

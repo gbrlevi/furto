@@ -63,7 +63,7 @@ def main() -> None:
         "extract_video_features",
         config=config,
         seeds={},
-        models={"videomae": {"weights": config["model"]}},
+        models={"videomae": {"hub_id": config["model"]}},
     )
     model = VideoMAEForVideoClassification.from_pretrained(config["model"]).to("cuda").eval()
     out = Path(config["out"])
