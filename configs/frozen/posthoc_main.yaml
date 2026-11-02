@@ -6,7 +6,7 @@ name: posthoc_main
 source_run: runs/20261027-080924_evaluate_main_test  # frame scores and labels of the 5 seeds
 dataset_from: runs/20261026-225403_train_c1_base  # dataset settings to read the test poses
 fps: 15.0
-null: {draws: 2000, seed: 0}  # labels rolled within each video
+rolled_null: {draws: 2000, seed: 0}  # labels rolled within each video
 alerts: {min_alert_frames: 15, merge_gap_frames: 30}  # as configs/frozen/main.yaml
 events: {after_frames: 30}  # as configs/frozen/main.yaml
 sweep_thresholds: [0.01, 0.015, 0.02, 0.025, 0.03, 0.04, 0.05, 0.07, 0.1, 0.15, 0.2]  # seed 0

@@ -44,7 +44,9 @@ def main() -> None:
     path = Path(sys.argv[1])
     frozen = check_frozen(path)
     config = load_config(path)
-    run = start_run("posthoc_test", config={**config, "frozen": frozen}, seeds=config["null"])
+    run = start_run(
+        "posthoc_test", config={**config, "frozen": frozen}, seeds=config["rolled_null"]
+    )
     log_test_opening(TEST_LOG, run, frozen)
     source = Path(config["source_run"])
     meta = json.loads((Path(config["dataset_from"]) / "meta.json").read_text(encoding="utf-8"))
@@ -75,7 +77,7 @@ def main() -> None:
             "people_count_frames_with_person": auc(y[with_person], n[with_person]),
         },
     }  # fmt: skip
-    draws, seed = config["null"]["draws"], config["null"]["seed"]
+    draws, seed = config["rolled_null"]["draws"], config["rolled_null"]["seed"]
     person_masks = [p > 0 for p in people]
     per_seed = []
     for z in seeds:

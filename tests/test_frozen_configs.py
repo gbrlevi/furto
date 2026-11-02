@@ -11,6 +11,7 @@ from tcc.utils.config import load_config
 ROOT = Path(__file__).resolve().parents[1]
 FROZEN = ROOT / "configs" / "frozen"
 NAMES = ["main", "nan_zero", "t12", "t48", "gate_off"]
+POSTHOC = ["posthoc_main"]  # added 02/11/2026; reads the stored scores of main, trains nothing
 SHARED = ["operating_points", "alerts", "threshold_candidates", "offline", "events",
           "bootstrap", "device", "batch_size"]  # fmt: skip
 
@@ -21,7 +22,7 @@ def _load(name: str) -> dict:  # type: ignore[type-arg]
 
 def test_predeclared_rules_and_the_five_configurations_exist() -> None:
     assert (FROZEN / "PREDECLARED.md").exists()
-    assert sorted(p.stem for p in FROZEN.glob("*.yaml")) == sorted(NAMES)
+    assert sorted(p.stem for p in FROZEN.glob("*.yaml")) == sorted(NAMES + POSTHOC)
 
 
 def test_every_configuration_shares_the_predeclared_evaluation_rules() -> None:
