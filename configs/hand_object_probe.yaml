@@ -1,0 +1,15 @@
+# Fixed before any result. Declared expectation: at 7-10 s the normal variant holds the product
+# more than the concealment one in p1, p3 and p5; p2 and p4 end with empty hands in both.
+model: openai/clip-vit-base-patch16
+poses: runs/20261101-195720_synthetic_probe
+videos: data/raw/synthetic
+pose_fps: 15
+every: 5
+crop_fraction: 0.2
+forearm_push: 0.25
+holding:
+  - a photo of a hand holding a packaged product
+  - a photo of a hand holding a snack bar or a can
+empty:
+  - a photo of an empty hand
+  - a photo of an open hand with nothing in it
