@@ -1,0 +1,23 @@
+# Template for one camera of the shop. The polygons below are placeholders: draw them on a
+# frame of the real camera (zone_rules.py CONFIG --draw writes one with a pixel grid).
+video: data/interim/demo/G421_2018-03-11_16-15_internal.mp4 # 15 fps copy the poses refer to
+poses: data/interim/demo/G421_2018-03-11_16-15_poses.npz # from scripts/extract_pose.py
+camera: G421
+fps: 15.0
+pose_size: [1920, 1072] # pixels of the frames the poses were extracted from
+draw_frame: 0
+# MEVA G421 is a school hall, not a shop: these zones only exercise the code (counter on the
+# left as "shelf", the tables as "checkout", the floor in front of the doors as "exit").
+zones: # polygons [x, y] in pose pixels; names used by the rule: shelf, checkout, exit
+  shelf: [[0, 680], [520, 680], [520, 1072], [0, 1072]]
+  checkout: [[340, 420], [1000, 420], [1000, 640], [340, 640]]
+  exit: [[720, 300], [1560, 300], [1560, 520], [720, 520]]
+tracking:
+  min_ankle_conf: 0.3 # below it, the bottom of the box is used as the foot position
+  max_gap_seconds: 1.0 # a visit survives a lost detection this long
+  min_visit_seconds: 0.5 # shorter passes through a zone are ignored
+rule:
+  min_shelf_seconds: 3.0 # time at shelves that counts as having picked something
+  min_checkout_seconds: 2.0 # time at the checkout that counts as having paid
+  payment_grace_seconds: 20.0 # a sale recorded up to this long after reaching the exit counts
+payments: null # optional CSV with a "seconds" column, one row per sale
