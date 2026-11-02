@@ -117,10 +117,13 @@ def evaluate(config: dict[str, Any], base: dict[str, Any], which: str, prompt: s
         for v, y in zip(videos, frames, strict=True)
     ]
     draws, seed = base["null_draws"], base["seed"]
-    scores = [v["scores"] for v in videos]
+    ok = [np.isfinite(v["scores"]) for v in videos]  # a float16 overflow leaves a clip unscored
+    scores = [v["scores"][m] for v, m in zip(videos, ok, strict=True)]
+    clips = [c[m] for c, m in zip(clips, ok, strict=True)]
     out: dict[str, Any] = {
         "videos": len(videos),
         "events": int(sum(len(r) for r in spans.values())),
+        "unscored_clips": int(sum((~m).sum() for m in ok)),
         "within_video": within_video_auc(clips, scores, draws, seed),
         "within_video_no_trend": within_video_auc(
             clips, [remove_position_trend(s) for s in scores], draws, seed
