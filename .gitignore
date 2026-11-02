@@ -33,6 +33,8 @@ Thumbs.db
 !docs/ROADMAP.md
 # e as regras pré-declaradas do teste, que o portão exige commitadas (ADR-0009, sessão 3)
 !configs/frozen/PREDECLARED.md
+# e o pré-registro da sondagem sintética (sessão 4)
+!configs/synthetic_probe/PROTOCOLO.md
 
 # Ambientes separados: PoC original (sessão 2) e pilha de pose (sessão 2B)
 .venv-legacy/

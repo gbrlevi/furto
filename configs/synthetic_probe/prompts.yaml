@@ -1,0 +1,108 @@
+# Sondagem sintética pré-declarada (P20, decidida por Gabriel em 01/11/2026).
+# Commitar ESTE arquivo e o PROTOCOLO.md ANTES de gerar qualquer vídeo.
+# Depois do commit, nenhum texto abaixo pode mudar.
+
+protocol_version: 1
+declared_on: "2026-11-01"
+
+generator:
+  # Preencher ANTES do commit. Um único gerador e uma única configuração para os 10 vídeos.
+  name: "Google AI Studio"            # ex.: o serviço que o grupo usar
+  model_version: "Gemini Omni 1.1 Flash"   # versão exata exibida pelo serviço
+  duration_s: 10
+  aspect_ratio: "16:9"
+  resolution: "720p" # se o serviço não oferecer 1080p, usar a maior disponível e registrar
+  seed: null          # não disponível no serviço (Gabriel, 01/11/2026)
+  negative_prompt: "camera movement, zoom, pan, cut, text, subtitles, watermark, timestamp, cartoon, animation, multiple people, children"
+
+# Bloco de estilo idêntico em todos os prompts (concatenado antes de cada cena).
+style: >-
+  Security camera footage from a fixed CCTV camera mounted high in a corner near the
+  ceiling, looking down at about 35 degrees. Small self-service convenience store
+  inside a residential condominium building: metal shelves with packaged snacks, a
+  glass-door beverage fridge and a self-checkout tablet on a stand. Cool fluorescent
+  light, realistic colors, slight sensor noise. The camera never moves: no pan, no
+  zoom, no cuts, no text, no timestamp. Exactly one adult person, whose whole body,
+  from head to feet, stays visible for the entire clip and fills about one third of
+  the frame height. Realistic, natural human motion at normal speed. 10 seconds.
+
+# Pares: mesmo cenário, mesma pessoa, mesmos movimentos amplos; só muda a ocultação.
+pairs:
+  - id: p1
+    person: "an adult man in a grey hoodie and dark jeans"
+    concealment: >-
+      In the first 3 seconds he walks to the snack shelf and picks up a chocolate bar.
+      Between 3 and 7 seconds he glances left and right, then slides the chocolate
+      bar into the front pocket of his hoodie and pulls the hoodie down over it.
+      In the last 3 seconds he walks slowly past the self-checkout tablet without
+      stopping, hands empty.
+    normal: >-
+      In the first 3 seconds he walks to the snack shelf and picks up a chocolate bar.
+      Between 3 and 7 seconds he turns it over and reads the label, holding it in
+      front of his chest with both hands. In the last 3 seconds he walks to the
+      self-checkout tablet, holding the chocolate bar visibly in his hand, and taps
+      the screen.
+
+  - id: p2
+    person: "an adult woman wearing a black backpack on one shoulder"
+    concealment: >-
+      In the first 3 seconds she opens the glass door of the beverage fridge and takes
+      out a can. Between 3 and 7 seconds she closes the fridge, swings the backpack to
+      her front, unzips it and quickly puts the can inside, then zips it and puts the
+      backpack back on her shoulder. In the last 3 seconds she walks past the
+      self-checkout tablet without stopping.
+    normal: >-
+      In the first 3 seconds she opens the glass door of the beverage fridge and takes
+      out a can. Between 3 and 7 seconds she closes the fridge, swings the backpack to
+      her front, adjusts the straps and puts it back on her shoulder, still holding
+      the can visibly in her hand. In the last 3 seconds she walks to the
+      self-checkout tablet and places the can next to it.
+
+  - id: p3
+    person: "an adult man in a dark blue zip-up jacket and khaki trousers"
+    concealment: >-
+      In the first 3 seconds he walks to the shelf and crouches in front of the lowest
+      shelf. Between 3 and 7 seconds, still crouching, he takes two small packages,
+      opens the jacket with one hand and tucks both packages inside the jacket, then
+      zips it up. In the last 3 seconds he stands up and walks away from the shelf
+      with his hands empty.
+    normal: >-
+      In the first 3 seconds he walks to the shelf and crouches in front of the lowest
+      shelf. Between 3 and 7 seconds, still crouching, he takes two small packages,
+      looks at them, and puts both into a red shopping basket on the floor beside
+      him. In the last 3 seconds he stands up, picks up the basket and walks to the
+      self-checkout tablet.
+
+  - id: p4
+    person: "an adult woman with a large canvas tote bag on her shoulder"
+    concealment: >-
+      In the first 3 seconds she stands at the snack shelf looking at her phone held in
+      her right hand. Between 3 and 7 seconds, still looking at the phone, she takes a
+      packet of cookies from the shelf with her left hand and drops it into the open
+      tote bag. In the last 3 seconds she puts the phone away and walks off without
+      going to the self-checkout tablet.
+    normal: >-
+      In the first 3 seconds she stands at the snack shelf looking at her phone held in
+      her right hand. Between 3 and 7 seconds, still looking at the phone, she takes a
+      packet of cookies from the shelf with her left hand, looks at it, and puts it
+      back on the shelf. In the last 3 seconds she puts the phone away and walks off.
+
+  - id: p5
+    person: "an adult man in a white t-shirt and a light grey zip jacket, holding two snack bars"
+    concealment: >-
+      In the first 3 seconds he stands at the self-checkout tablet holding two snack
+      bars. Between 3 and 7 seconds he scans one snack bar at the tablet, and with the
+      other hand slips the second snack bar into his jacket pocket without scanning
+      it. In the last 3 seconds he taps the screen to finish and walks away.
+    normal: >-
+      In the first 3 seconds he stands at the self-checkout tablet holding two snack
+      bars. Between 3 and 7 seconds he scans the first snack bar and then the second
+      one at the tablet. In the last 3 seconds he taps the screen to finish and walks
+      away holding both snack bars in his hand.
+
+# Ordem de geração e de processamento, fixa.
+order: [p1_concealment, p1_normal, p2_concealment, p2_normal, p3_concealment, p3_normal,
+        p4_concealment, p4_normal, p5_concealment, p5_normal]
+
+# Exemplo para a apresentação, escolhido antes de ver qualquer resultado.
+presentation_example: p1

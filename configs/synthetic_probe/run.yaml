@@ -1,0 +1,22 @@
+# Session 4, item 5: synthetic probe (configs/synthetic_probe/PROTOCOLO.md). Qualitative
+# illustration, not an evaluation. Points to the frozen configuration; changes nothing in it.
+name: synthetic_probe
+frozen_config: configs/frozen/main.yaml
+# Each seed's threshold for N = 5, computed by the frozen rule on its own validation
+thresholds_run: runs/20261027-080850_evaluate_main_validation
+operating_point: "5"
+expected_seed0_threshold: 0.266779  # protocol, section 4 (checked to 6 decimals)
+prompts: configs/synthetic_probe/prompts.yaml
+videos_dir: data/raw/synthetic
+frozen_at: null  # undecided: no commit before generation (deviation in the report)
+# Used for the hit column only while there are no annotations (deviation in the report): the
+# time span the concealment prompts ask for. Replaced by the annotated union when it exists.
+prompted_interval_s: [3, 7]
+presentation_example: p1  # skeleton video of both videos of this pair (protocol, section 5)
+pose_config: configs/online_pose.yaml
+pose_python: C:/Users/power/git/furto/.venv-pose/Scripts/python.exe
+internal_dir: data/interim/synthetic  # video over generated frames: never in git
+internal_scale: 0.75  # 1280 x 720 -> 960 x 540
+public_scale: 0.75
+conf_min_draw: 0.3  # drawing only
+equivalence_rtol: 1.0e-5  # online vs offline window scores (as in configs/online_score.yaml)
