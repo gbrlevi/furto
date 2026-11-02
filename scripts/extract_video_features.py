@@ -11,7 +11,7 @@ from transformers import VideoMAEForVideoClassification
 
 from tcc.utils.config import load_config
 from tcc.utils.run_logger import start_run
-from tcc.video.clips import clip_starts
+from tcc.video.clips import clip_starts, people_crop
 
 MEAN = np.array([0.485, 0.456, 0.406], np.float32)  # ImageNet statistics the model expects
 STD = np.array([0.229, 0.224, 0.225], np.float32)
@@ -30,7 +30,11 @@ def embed(model: VideoMAEForVideoClassification, clips: list[np.ndarray]) -> np.
 def extract(model: VideoMAEForVideoClassification, path: Path, out: Path, c: dict) -> None:
     capture = cv2.VideoCapture(str(path))
     fps = float(capture.get(cv2.CAP_PROP_FPS))
+    width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
     span = (c["num_frames"] - 1) * c["frame_step"] + 1
+    people = c.get("people")
+    boxes = np.load(Path(people["out"]) / f"{path.stem}.npz")["boxes"] if people else None
     recent: deque[np.ndarray] = deque(maxlen=span)
     feats, starts, batch = [], [], []
     n = 0
@@ -38,11 +42,16 @@ def extract(model: VideoMAEForVideoClassification, path: Path, out: Path, c: dic
         ok, frame = capture.read()
         if not ok:
             break
-        recent.append(cv2.cvtColor(cv2.resize(frame, (c["size"], c["size"])), cv2.COLOR_BGR2RGB))
+        recent.append(frame if people else cv2.resize(frame, (c["size"], c["size"])))
         n += 1
         if n >= span and (n - span) % c["hop"] == 0:
-            frames = list(recent)
-            batch.append(np.stack(frames[:: c["frame_step"]]))
+            chosen = list(recent)[:: c["frame_step"]]
+            if boxes is not None:
+                x1, y1, x2, y2 = people_crop(
+                    boxes, n - span, n - 1, width, height, people["margin"]
+                )
+                chosen = [cv2.resize(f[y1:y2, x1:x2], (c["size"], c["size"])) for f in chosen]
+            batch.append(np.stack([cv2.cvtColor(f, cv2.COLOR_BGR2RGB) for f in chosen]))
             starts.append(n - span)
             if len(batch) == c["batch"]:
                 feats.append(embed(model, batch))

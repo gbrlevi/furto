@@ -1,0 +1,20 @@
+# Actor-centred clips: same model, cropped to the union of the people seen during each clip.
+model: MCG-NJU/videomae-base-finetuned-kinetics
+num_frames: 16
+frame_step: 4
+hop: 16
+size: 224
+batch: 8
+videos:
+  - data/raw/ucf_crime
+  - data/raw/ucf_crime/normal_test
+  - data/raw/synthetic
+  - data/raw/meva
+out: data/features/videomae_person
+people:
+  weights: data/weights/ultralytics/yolov8m.pt
+  every: 8
+  conf: 0.25
+  imgsz: 640
+  out: data/features/people
+  margin: 0.2 # of the side of the union box, on each side

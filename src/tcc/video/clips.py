@@ -41,3 +41,42 @@ def clip_frame_scores(
         stop = last[i + 1] if i + 1 < len(last) else n_frames
         out[frame:stop] = scores[i]
     return out
+
+
+def people_crop(
+    boxes: npt.NDArray[np.float32],
+    first: int,
+    last: int,
+    width: int,
+    height: int,
+    margin: float,
+) -> tuple[int, int, int, int]:
+    """Square around all the people seen in frames [first, last]; the whole frame if nobody.
+
+    `boxes` rows are [frame, x1, y1, x2, y2].
+    """
+    inside = boxes[(boxes[:, 0] >= first) & (boxes[:, 0] <= last)]
+    if not len(inside):
+        return 0, 0, width, height
+    x1, y1 = inside[:, 1].min(), inside[:, 2].min()
+    x2, y2 = inside[:, 3].max(), inside[:, 4].max()
+    side = max(x2 - x1, y2 - y1) * (1 + 2 * margin)
+    side = min(side, width, height)
+    cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
+    left = int(np.clip(cx - side / 2, 0, width - side))
+    top = int(np.clip(cy - side / 2, 0, height - side))
+    return left, top, left + int(side), top + int(side)
+
+
+def remove_scene(x: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
+    """Each clip minus the running mean of the earlier clips of the video (causal)."""
+    if not len(x):
+        return x
+    earlier = np.cumsum(x, axis=0)[:-1] / np.arange(1, len(x))[:, None]
+    return np.concatenate([np.zeros_like(x[:1]), x[1:] - earlier]).astype(np.float32)
+
+
+def remove_position_trend(scores: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+    """Scores minus their straight-line trend along the video."""
+    t = np.arange(len(scores), dtype=np.float64)
+    return np.asarray(scores - np.polyval(np.polyfit(t, scores, 1), t), np.float64)
