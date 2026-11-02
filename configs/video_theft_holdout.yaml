@@ -1,0 +1,8 @@
+# Development on the 21 annotated videos, then one frozen evaluation on the UCA-labelled videos.
+# The candidates below are compared only on the out-of-fold scores of the 21.
+base: configs/video_theft.yaml
+labels: configs/uca_holdout_labels.yaml
+features: data/features/videomae_person
+dev_oof: runs/20261102-020903_video_theft_variants/oof_person_shop.npz
+min_history: 8 # clips of history before standardising, about 4 s
+quantiles: [0.5, 0.7, 0.8, 0.9, 0.95, 0.98, 0.99]

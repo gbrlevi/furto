@@ -1,6 +1,7 @@
 import numpy as np
 
 from tcc.video.clips import (
+    causal_standardise,
     clip_frame_scores,
     clip_starts,
     frame_labels,
@@ -14,6 +15,17 @@ from tcc.video.clips import (
 ROWS = """Shoplifting001_x264.mp4  Shoplifting  1550  2000  -1  -1
 Shoplifting007_x264.mp4  Shoplifting  550  760  4630  4920
 Normal_Videos_003_x264.mp4  Normal  -1  -1  -1  -1"""
+
+
+def test_causal_standardise_uses_only_earlier_scores() -> None:
+    s = np.array([1.0, 3.0, 2.0, 10.0, 0.0])
+    z = causal_standardise(s, 2)
+    assert np.isnan(z[:2]).all()
+    assert z[2] == 0.0  # mean 2 of the two earlier ones
+    assert z[3] == (10.0 - s[:3].mean()) / s[:3].std()
+    changed = s.copy()
+    changed[4] = 99.0
+    assert np.array_equal(causal_standardise(changed, 2)[:4], z[:4], equal_nan=True)
 
 
 def test_annotations_keep_one_or_two_intervals_of_the_category() -> None:

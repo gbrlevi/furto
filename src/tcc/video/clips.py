@@ -76,6 +76,17 @@ def remove_scene(x: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
     return np.concatenate([np.zeros_like(x[:1]), x[1:] - earlier]).astype(np.float32)
 
 
+def causal_standardise(
+    scores: npt.NDArray[np.float64], min_history: int
+) -> npt.NDArray[np.float64]:
+    """Each score against the mean and deviation of the earlier ones; NaN until enough history."""
+    out = np.full(len(scores), np.nan)
+    for i in range(min_history, len(scores)):
+        earlier = scores[:i]
+        out[i] = (scores[i] - earlier.mean()) / max(earlier.std(), 1e-6)
+    return out
+
+
 def remove_position_trend(scores: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
     """Scores minus their straight-line trend along the video."""
     t = np.arange(len(scores), dtype=np.float64)
