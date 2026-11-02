@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "Triagem de comportamentos compatíveis com furto a partir de pose humana (TCC UNIFOR)"
 requires-python = "==3.11.*"
 dependencies = [
+    "accelerate>=1.15.0",
+    "bitsandbytes>=0.50.2",
     "matplotlib>=3.9",
     "numpy>=2.0",
     "opencv-python>=4.10",
@@ -13,6 +15,7 @@ dependencies = [
     "scikit-learn>=1.5",
     "scipy>=1.14",
     "torch>=2.14,<2.15",
+    "torchvision>=0.29.1",
     "transformers>=4.45",
 ]
 
@@ -41,6 +44,7 @@ explicit = true
 
 [tool.uv.sources]
 torch = { index = "pytorch-cu126" }
+torchvision = { index = "pytorch-cu126" }
 
 [tool.ruff]
 line-length = 100
