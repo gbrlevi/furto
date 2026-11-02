@@ -1,0 +1,13 @@
+# FROZEN (ADR-0009): never edit; a change needs a new file and a new test opening.
+# Same checks as posthoc_main.yaml plus one no-model baseline, added on 02/11/2026 AFTER seeing
+# that the offline within-video AUC of main was 0.84 with almost no spread across seeds: does
+# the STG-NF filling and smoothing alone, on a constant score, give the same?
+name: posthoc_presence
+source_run: runs/20261027-080924_evaluate_main_test  # frame scores and labels of the 5 seeds
+dataset_from: runs/20261026-225403_train_c1_base  # dataset settings to read the test poses
+fps: 15.0
+rolled_null: {draws: 2000, seed: 0}  # labels rolled within each video
+alerts: {min_alert_frames: 15, merge_gap_frames: 30}  # as configs/frozen/main.yaml
+events: {after_frames: 30}  # as configs/frozen/main.yaml
+sweep_thresholds: [0.01, 0.015, 0.02, 0.025, 0.03, 0.04, 0.05, 0.07, 0.1, 0.15, 0.2]  # seed 0
+presence_baseline: {fill: 0.0, sigmas: [1, 2, 3, 4, 5, 6]}  # 1 where a window lands; as main

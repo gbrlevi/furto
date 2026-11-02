@@ -16,6 +16,7 @@ import numpy as np
 from tcc.data.poselift import load_video_with_real
 from tcc.eval.alerts import alerts
 from tcc.eval.events import event_hits
+from tcc.eval.frame_scores import most_normal, post_process, window_frame_scores
 from tcc.eval.posthoc import (
     auc,
     events_with_room,
@@ -112,6 +113,34 @@ def main() -> None:
             }
         )
     out["per_seed"] = per_seed
+    presence = config.get("presence_baseline")
+    if presence:
+        # Added after seeing the offline within-video AUC: the same filling and smoothing
+        # applied to a score of 1 wherever a scorable window lands and 0 elsewhere.
+        T = meta["config"]["treatment"]["T"]
+        model_raw, ones_raw = [], []
+        for v, lab in zip(ids, labels, strict=True):
+            window_meta, s = seeds[0][f"{v}__window_meta"], seeds[0][f"{v}__window_scores"]
+            ones = np.where(np.isfinite(s), 1.0, np.nan)
+            model_raw.append(window_frame_scores(window_meta, s, T, len(lab), "center"))
+            ones_raw.append(window_frame_scores(window_meta, ones, T, len(lab), "center"))
+        sigmas = presence["sigmas"]
+        rebuilt = post_process(model_raw, most_normal(model_raw), sigmas)
+        stored = [seeds[0][f"{v}__offline"] for v in ids]
+        smoothed = post_process(ones_raw, presence["fill"], sigmas)
+        inside = within_video_auc(labels, smoothed, person_masks)
+        out["presence_baseline"] = {
+            "rebuilt_offline_max_abs_diff_seed0": float(
+                max(np.abs(a - b).max() for a, b in zip(rebuilt, stored, strict=True))
+            ),
+            "pooled": auc(y, np.concatenate(smoothed)),
+            "within_video_offline": {
+                **null_summary(
+                    inside[0], within_video_null(labels, smoothed, person_masks, draws, seed)
+                ),
+                "videos": inside[1],
+            },
+        }
     for key in ("offline_all_frames", "offline_frames_with_person", "last_frame_pooled"):
         values = [s[key] for s in per_seed]
         out[f"{key}_mean_sd"] = [float(np.mean(values)), float(np.std(values, ddof=1))]
