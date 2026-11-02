@@ -1,0 +1,9 @@
+# Online triage on a public video: exercises the unpaid-exit rule end to end; not a detection
+# result (MEVA G421 is a school hall; the zones of configs/zones_example.yaml are illustrative).
+pose_config: configs/online_pose.yaml
+pose_python: C:/Users/power/git/furto/.venv-pose/Scripts/python.exe
+videos:
+  - id: "G421_2018-03-11_16-15"
+    camera: G421
+    path: data/raw/meva/2018-03-11.16-15-00.16-20-00.school.G421.r13.avi
+    zones: configs/zones_example.yaml
