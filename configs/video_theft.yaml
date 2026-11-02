@@ -1,0 +1,26 @@
+# RGB theft detection on UCF-Crime Shoplifting. Fixed before looking at any result; every model
+# below is reported, none is selected on the evaluation.
+features: data/features/videomae
+annotations: data/raw/ucf_crime/Temporal_Anomaly_Annotation_for_Testing_Videos.txt
+category: Shoplifting
+seed: 0
+folds: 5 # by video, over the annotated theft videos
+normal_split: [0.5, 0.25, 0.25] # train negatives, threshold, measure (by video)
+label_overlap: 0.5 # a clip is theft if at least this fraction of its frames is annotated
+linear:
+  C: 0.01
+mil:
+  hidden: 128
+  dropout: 0.3
+  lr: 0.001
+  weight_decay: 0.001
+  epochs: 30
+  batch: 256
+  topk_fraction: 0.125 # clips of an unannotated theft video taken as theft each epoch
+alert:
+  rates: [5, 10] # alerts per hour on normal video, threshold candidates from the quantile grid
+  min_seconds: 1.0
+  merge_seconds: 2.0
+  hit_after_seconds: 2.0
+null_draws: 1000
+synthetic_prefix: p

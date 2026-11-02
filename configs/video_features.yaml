@@ -1,0 +1,13 @@
+# Pretrained video features of the UCF-Crime Shoplifting and normal test videos.
+model: MCG-NJU/videomae-base-finetuned-kinetics
+num_frames: 16
+frame_step: 4 # 16 frames over 61 raw frames, about 2 s at 30 fps
+hop: 16 # one clip every ~0.53 s at 30 fps
+size: 224
+batch: 8
+videos:
+  - data/raw/ucf_crime
+  - data/raw/ucf_crime/normal_test
+  - data/raw/synthetic
+  - data/raw/meva
+out: data/features/videomae
