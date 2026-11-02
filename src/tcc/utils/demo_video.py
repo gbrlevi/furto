@@ -39,7 +39,7 @@ def spans(mask: npt.NDArray[np.bool_]) -> list[tuple[int, int]]:
 
 def timeline(
     path: Path, title: str, fs: FrameScores, fps: float, threshold: float,
-    final: list[Alert], theft: list[tuple[int, int]],
+    final: list[Alert], theft: list[tuple[int, int]], theft_label: str = "annotated theft",
 ) -> None:  # fmt: skip
     n = len(fs.score)
     t = np.arange(n) / fps
@@ -61,7 +61,7 @@ def timeline(
     for a, b in theft:
         ax.axvspan(a / fps, b / fps, ymin=0, ymax=0.05, color=THEFT_COLOR, linewidth=0)
     if theft:
-        handles.append(Patch(color=THEFT_COLOR, label="annotated theft"))
+        handles.append(Patch(color=THEFT_COLOR, label=theft_label))
     ax.plot(t, np.where(fs.state == SCORED, fs.score, np.nan), color=SCORE_COLOR, linewidth=1.5)
     ax.axhline(threshold, color=INK, linewidth=1, linestyle="--")
     ax.set_yscale("symlog", linthresh=SYMLOG_LINEAR * threshold)

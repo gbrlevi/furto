@@ -123,7 +123,7 @@ def _run_video(
                     "video": vid,
                     "c1_run": config["c1_run"],
                     "threshold": threshold,
-                    "threshold_frozen": False,
+                    "threshold_frozen": config.get("threshold_frozen", False),
                     "threshold_origin": config["threshold_origin"],
                 }
             )
