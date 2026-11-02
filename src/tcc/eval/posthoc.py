@@ -66,7 +66,7 @@ def events_with_room(labels: IntArray, scored: BoolArray, min_run: int, after: i
     count = 0
     for start, end in zip(np.flatnonzero(edges == 1), np.flatnonzero(edges == -1), strict=True):
         run = best = 0
-        for f in range(start, min(end + after, len(scored))):
+        for f in range(int(start), min(int(end) + after, len(scored))):
             run = run + 1 if scored[f] else 0
             best = max(best, run)
         count += best >= min_run
