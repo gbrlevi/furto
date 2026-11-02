@@ -1,0 +1,21 @@
+# Theft intervals, in seconds, of UCF-Crime Shoplifting videos outside the 21 officially annotated.
+# Read from the sentences of the UCA annotations (Yuan et al., CVPR 2024; data/raw/uca) before any
+# model scored these videos. Not a human annotation of the footage: a reading of third-party text.
+# Rule: only the act of taking or concealing the item, as stated; leaving the shop is not included.
+# Grouped because they were read together; review them against the video before citing the numbers.
+videos:
+  Shoplifting006_x264: [[57.2, 59.8]] # escapes with the necklace
+  Shoplifting008_x264: [[172.5, 177.7]] # phone into the pocket
+  Shoplifting009_x264: [[145.2, 153.7]] # box hidden behind him
+  Shoplifting018_x264: [[12.4, 28.9], [29.9, 57.7]] # bags into her clothes, twice
+  Shoplifting019_x264: [[6.3, 12.1]] # boxes grabbed at the counter
+  Shoplifting024_x264: [[26.4, 37.6]] # item from the table into her clothes
+  Shoplifting025_x264: [[13.2, 23.1]] # clothes rolled and clamped under her
+  Shoplifting026_x264: [[1.7, 45.8]] # fabric into the bag, almost the whole video
+  Shoplifting032_x264: [[42.7, 47.4]] # grabs from the counter and runs
+  Shoplifting036_x264: [[98.7, 116.2]] # pile of clothes into her skirt
+  Shoplifting038_x264: [[80.8, 85.2]] # reaches the counter and runs
+  Shoplifting040_x264: [[42.5, 69.9], [138.2, 163.8], [274.9, 299.6], [340.3, 355.2], [437.1, 451.7]] # clothes into accomplices' bags
+  Shoplifting041_x264: [[291.3, 308.1]] # item into the bag when the clerk leaves
+# In UCA, no sentence clearly states a theft; left out of the evaluation.
+excluded: [Shoplifting003_x264, Shoplifting012_x264, Shoplifting013_x264, Shoplifting014_x264, Shoplifting030_x264, Shoplifting042_x264]
