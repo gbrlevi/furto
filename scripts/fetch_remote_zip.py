@@ -3,12 +3,16 @@
 Usage: fetch_remote_zip.py URL OUT_DIR SUBSTRING [SUBSTRING ...]
 """
 
+import http.client
 import io
 import shutil
 import sys
+import time
 import urllib.request
 import zipfile
 from pathlib import Path
+
+ATTEMPTS = 6
 
 
 class RemoteFile(io.RawIOBase):
@@ -38,8 +42,15 @@ class RemoteFile(io.RawIOBase):
         if end <= self.pos:
             return 0
         request = urllib.request.Request(self.url, headers={"Range": f"bytes={self.pos}-{end - 1}"})
-        with urllib.request.urlopen(request) as r:
-            data: bytes = r.read()
+        for attempt in range(ATTEMPTS):
+            try:
+                with urllib.request.urlopen(request, timeout=120) as r:
+                    data: bytes = r.read()
+                break
+            except (OSError, http.client.HTTPException):
+                if attempt == ATTEMPTS - 1:
+                    raise
+                time.sleep(2**attempt)
         buffer[: len(data)] = data
         self.pos += len(data)
         return len(data)
