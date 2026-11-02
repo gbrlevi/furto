@@ -95,6 +95,73 @@ def track_visits(
     return sorted(visits, key=lambda v: (v.start, v.track, v.zone))
 
 
+class ExitMonitor:
+    """`track_visits` + `unpaid_exits` fed frame by frame. An exit is judged once the
+    payment grace after its first frame has passed (or at `flush`), with the visits and
+    payments seen so far; then it gives the same alerts as the offline functions."""
+
+    def __init__(
+        self,
+        zones: Mapping[str, Polygon],
+        min_conf: float,
+        max_gap: int,
+        min_frames: int,
+        rule: ExitRule,
+    ) -> None:
+        self.zones, self.min_conf, self.rule = zones, min_conf, rule
+        self.max_gap, self.min_frames = max_gap, min_frames
+        self.inside: dict[int, dict[str, list[int]]] = {}
+        self.payments: list[int] = []
+        self.judged: set[tuple[int, int]] = set()
+
+    def pay(self, frame: int) -> None:
+        self.payments.append(frame)
+
+    def push(
+        self,
+        q: int,
+        track_id: npt.NDArray[np.int64],
+        bbox: npt.NDArray[np.float32],
+        keypoints: npt.NDArray[np.float32],
+    ) -> list[ExitAlert]:
+        points = foot_points(bbox, keypoints, self.min_conf)
+        for name, polygon in self.zones.items():
+            for tid, ok in zip(
+                track_id.tolist(), in_polygon(points, polygon).tolist(), strict=True
+            ):
+                if ok:
+                    self.inside.setdefault(tid, {}).setdefault(name, []).append(q)
+        return self._judge(q, final=False)
+
+    def flush(self) -> list[ExitAlert]:
+        return self._judge(-1, final=True)
+
+    def _judge(self, q: int, final: bool) -> list[ExitAlert]:
+        out = []
+        for tid, by_zone in self.inside.items():
+            visits = sorted(
+                (
+                    Visit(tid, name, a, b)
+                    for name, frames in by_zone.items()
+                    for a, b in runs(np.asarray(frames, np.int64), self.max_gap, self.min_frames)
+                ),
+                key=lambda v: (v.start, v.track, v.zone),
+            )
+            due = [
+                v
+                for v in visits
+                if v.zone == "exit"
+                and (tid, v.start) not in self.judged
+                and (final or q >= v.start + self.rule.payment_grace_frames)
+            ]
+            for e in due:
+                self.judged.add((tid, e.start))
+                out += [
+                    a for a in unpaid_exits(visits, self.payments, self.rule) if a.frame == e.start
+                ]
+        return out
+
+
 def unpaid_exits(
     visits: Sequence[Visit],
     payments: Sequence[int],

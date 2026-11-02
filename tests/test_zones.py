@@ -2,6 +2,7 @@ import numpy as np
 
 from tcc.data.schema import VideoPoses
 from tcc.rules.zones import (
+    ExitMonitor,
     ExitRule,
     Visit,
     foot_points,
@@ -78,6 +79,32 @@ def test_checkout_or_a_payment_or_a_short_shelf_visit_clears_the_exit() -> None:
     assert unpaid_exits(_visits(("shelf", 0, 59), ("exit", 100, 110)), [150], RULE) == []
     assert unpaid_exits(_visits(("shelf", 0, 59), ("exit", 100, 110)), [161], RULE) != []
     assert unpaid_exits(_visits(("shelf", 0, 9), ("exit", 100, 110)), [], RULE) == []
+
+
+def test_online_monitor_equals_the_offline_rule() -> None:
+    zones = {
+        "shelf": SQUARE,
+        "checkout": [(40, 0), (50, 0), (50, 10), (40, 10)],
+        "exit": [(20, 0), (30, 0), (30, 10), (20, 10)],
+    }
+    # unpaid trip, then a paid trip (checkout), then an unpaid trip cancelled by a sale
+    path = (
+        [(5.0, 5.0)] * 50 + [(25.0, 5.0)] * 20 + [(60.0, 5.0)] * 100
+        + [(5.0, 5.0)] * 50 + [(45.0, 5.0)] * 30 + [(25.0, 5.0)] * 20 + [(60.0, 5.0)] * 100
+        + [(5.0, 5.0)] * 50 + [(25.0, 5.0)] * 20 + [(60.0, 5.0)] * 30
+    )  # fmt: skip
+    video = _video(path)
+    payments = [len(path) - 40]
+    offline = unpaid_exits(track_visits(video, zones, 0.3, 2, 5), payments, RULE)
+    monitor = ExitMonitor(zones, 0.3, 2, 5, RULE)
+    online = []
+    for q in range(video.n_frames):
+        if q in payments:
+            monitor.pay(q)
+        online += monitor.push(q, video.track_id[[q]], video.bbox[[q]], video.keypoints[[q]])
+    online += monitor.flush()
+    assert [a.frame for a in offline] == [50]
+    assert online == offline
 
 
 def test_each_trip_is_judged_on_its_own() -> None:
