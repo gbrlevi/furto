@@ -1,0 +1,12 @@
+# What does the C1 score react to? Validation windows only; the test is not read.
+# Repeats with a clean tree the exploratory controls of 01/11/2026 (REGISTRO), same settings.
+models: configs/frozen/main.yaml  # the 5 seeds and their checkpoint hashes
+thresholds_from: runs/20261027-080850_evaluate_main_validation  # each seed's N thresholds
+stride: 1  # validation windows as in the evaluation
+sample: {size: 2000, seed: 0}  # windows perturbed, the same for every seed
+perturbations:
+  hand_to_hip: {frames: 12, ramp: 6}  # wrist reaches the hip in the last 12 frames
+  raise_wrist: {frames: 12, height: 2.0}  # torsos above the hip centre
+  noise_sd: 0.2  # torsos, on x and y
+batch_size: 1024
+device: cuda
