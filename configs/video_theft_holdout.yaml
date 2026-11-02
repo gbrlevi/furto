@@ -6,3 +6,5 @@ features: data/features/videomae_person
 dev_oof: runs/20261102-020903_video_theft_variants/oof_person_shop.npz
 min_history: 8 # clips of history before standardising, about 4 s
 quantiles: [0.5, 0.7, 0.8, 0.9, 0.95, 0.98, 0.99]
+# Frozen from runs/20261102-021913_video_theft_holdout_dev, before scoring the held-out videos.
+frozen: {standardise: true, threshold: 1.8096104276873488}
