@@ -1,0 +1,17 @@
+# Hand crops of the synthetic videos, same crop and prompts as configs/hand_hold_merl.yaml.
+model: openai/clip-vit-base-patch16
+poses: data/interim/synthetic
+videos: data/raw/synthetic
+video_name: "{}.mp4"
+pose_fps: 15
+crop_fraction: 0.25
+min_crop: 48
+forearm_push: 0.25
+batch: 256
+out: data/features/synthetic_hands
+holding:
+  - a photo of a hand holding a packaged product
+  - a photo of a hand holding a snack bar or a can
+empty:
+  - a photo of an empty hand
+  - a photo of an open hand with nothing in it
