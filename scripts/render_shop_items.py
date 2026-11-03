@@ -11,6 +11,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+from shop_items import polygons, scenes_of
 
 from tcc.pipeline.resample import frames_to_keep
 from tcc.rules.shopping import hand_points
@@ -41,6 +42,7 @@ def main() -> None:
     c = meta["config"]
     events = json.loads((run / "events.json").read_text(encoding="utf-8"))
     raw = load_config(Path("configs/hand_hold_synthetic.yaml"))
+    scenes = scenes_of(c)
     for item in c["videos"]:
         vid, ev = item["id"], events[item["id"]]
         z = np.load(Path(c["hands"]) / f"{vid}.npz")
@@ -54,7 +56,7 @@ def main() -> None:
         )
         writer = cv2.VideoWriter(str(run / f"{vid}_items.mp4"), cv2.VideoWriter_fourcc(*"mp4v"),
                                  c["fps"], (width, height))  # fmt: skip
-        scene = c["scenes"][item["scene"]]
+        scene = scenes[vid]
         i = 0
         while True:
             ok, frame = cap.read()
@@ -64,9 +66,10 @@ def main() -> None:
             i += 1
             if q is None:
                 continue
-            for poly in scene["shelf"]:
+            for poly in polygons(scene.get("shelf")):
                 cv2.polylines(frame, [np.int32(poly)], True, (255, 200, 0), 1)
-            cv2.polylines(frame, [np.int32(scene["checkout"])], True, (0, 200, 0), 1)
+            for poly in polygons(scene.get("checkout")):
+                cv2.polylines(frame, [np.int32(poly)], True, (0, 200, 0), 1)
             for row in np.flatnonzero(z["frame_idx"] == q):
                 kp = z["keypoints"][row]
                 for a, b in BONES:

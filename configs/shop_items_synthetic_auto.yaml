@@ -1,0 +1,40 @@
+# As configs/shop_items_synthetic.yaml, with the zones found automatically by OWLv2
+# (configs/auto_zones_synthetic.yaml) instead of the hand-drawn scenes.
+name: shop_items_synthetic_auto
+zones: runs/20261103-075532_auto_zones_synthetic/zones.yaml
+# Item pipeline on the ten synthetic videos: shelf contact -> product in hand -> where it was
+# let go -> paid or not. Zones drawn on frames of each video before any result; expectations
+# declared below before running. The hold threshold comes from the MERL dev run
+# (Youden on subjects 1-20), never from these videos.
+hands: data/features/synthetic_hands # from scripts/hand_hold_scores.py
+fps: 15
+hold:
+  source: zero_shot # or probe (logistic weights from the MERL dev run)
+  probe: null
+  threshold: 0.7148687243461609 # Youden on MERL subjects 1-20, runs/20261103-012826_merl_stages_dev
+contact: {push: 0.25, min_conf: 0.3, max_gap: 3, min_frames: 2} # as configs/merl_stages.yaml
+take: {window: 15}
+release:
+  body_radius: 0.75 # torso lengths from the torso centre: pockets, waistband, bag at the hip
+  max_gap: 3
+  min_frames: 5 # a hold shorter than 1/3 s is not an item
+  look: 3 # last frames of the hold that say where the hand was
+payment_grace_seconds: 20
+link_seconds: 2 # variant, added on 03/11/2026 after the first results: concealment only of an item
+# whose hold began within 2 s of a shelf contact (take -> hold -> let go)
+exit: track_end # 10 s clips: the end of the track stands for leaving the view
+# Expected (declared before running): a concealment alert in every *_concealment video and
+# none in the *_normal ones. Known risk: in p4_normal she puts her phone into the bag at the
+# end, the same gesture as hiding an item. Unpaid exits are reported, not scored: the clips
+# end before most people would pay or leave.
+videos: # payments: [seconds, items] as the prompts describe them
+  - {id: p1_concealment, scene: store_a, expected: concealment, payments: []}
+  - {id: p1_normal, scene: store_a, expected: normal, payments: [[9.0, 1]]}
+  - {id: p2_concealment, scene: store_b, expected: concealment, payments: []}
+  - {id: p2_normal, scene: store_b, expected: normal, payments: []}
+  - {id: p3_concealment, scene: store_a, expected: concealment, payments: []}
+  - {id: p3_normal, scene: store_a, expected: normal, payments: []}
+  - {id: p4_concealment, scene: store_c, expected: concealment, payments: []}
+  - {id: p4_normal, scene: store_c, expected: normal, payments: []}
+  - {id: p5_concealment, scene: store_d, expected: concealment, payments: [[8.0, 1]]}
+  - {id: p5_normal, scene: store_e, expected: normal, payments: [[8.0, 2]]}

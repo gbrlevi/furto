@@ -1,3 +1,4 @@
+name: shop_items_synthetic_probe
 # Item pipeline on the ten synthetic videos: shelf contact -> product in hand -> where it was
 # let go -> paid or not. Zones drawn on frames of each video before any result; expectations
 # declared below before running. The hold threshold comes from the MERL dev run
@@ -16,6 +17,8 @@ release:
   min_frames: 5 # a hold shorter than 1/3 s is not an item
   look: 3 # last frames of the hold that say where the hand was
 payment_grace_seconds: 20
+link_seconds: 2 # variant, added on 03/11/2026 after the first results: concealment only of an item
+# whose hold began within 2 s of a shelf contact (take -> hold -> let go)
 exit: track_end # 10 s clips: the end of the track stands for leaving the view
 # Expected (declared before running): a concealment alert in every *_concealment video and
 # none in the *_normal ones. Known risk: in p4_normal she puts her phone into the bag at the
