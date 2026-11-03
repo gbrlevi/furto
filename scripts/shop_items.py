@@ -35,7 +35,7 @@ def hold_of(z: Any, c: dict[str, Any]) -> np.ndarray:  # Any: NpzFile
         return hold
     w = np.load(c["hold"]["probe"])
     n, _, d = z["emb"].shape
-    logit = z["emb"].reshape(-1, d).astype(np.float64) @ w["coef"].ravel() + float(w["intercept"])
+    logit = z["emb"].reshape(-1, d).astype(np.float64) @ w["coef"].ravel() + w["intercept"].item()
     return np.where(np.isfinite(hold), 1 / (1 + np.exp(-logit.reshape(n, 2))), np.nan)
 
 
