@@ -1,0 +1,153 @@
+# MERL Shopping Dataset (Singh et al., CVPR 2016; research and educational use), overhead
+# camera of a mock shop, 920 x 680 at 30 fps. Poses for the shelf-contact and product-in-hand
+# stages of the item pipeline. Same stack as ADR-0013, HRNet run by TensorRT FP16 (ADR-0016,
+# parity measured in session 3B) to fit 106 videos in a couple of hours.
+name: pose_extract_merl
+device: cuda:0
+target_fps: 15
+max_output_frames: null
+copy_to: data/interim/merl
+
+detector:
+  name: yolov8m
+  weights: data/weights/ultralytics/yolov8m.pt
+  conf: 0.1
+  imgsz: 640
+  half: false
+
+tracker:
+  tracker_type: bytetrack
+  track_high_thresh: 0.25
+  track_low_thresh: 0.1
+  new_track_thresh: 0.25
+  track_buffer: 30
+  match_thresh: 0.8
+  fuse_score: true
+
+pose:
+  name: td-hm_hrnet-w32_8xb64-210e_coco-256x192
+  config: data/weights/mmpose/td-hm_hrnet-w32_8xb64-210e_coco-256x192.py
+  weights: data/weights/mmpose/td-hm_hrnet-w32_8xb64-210e_coco-256x192-81c58e40_20220909.pth
+  flip_test: true
+
+onnx:
+  fp16: false
+  opset: 17
+  providers:
+    - name: TensorrtExecutionProvider
+      options:
+        trt_fp16_enable: true
+        trt_engine_cache_enable: true
+        trt_engine_cache_path: data/weights/trt_cache
+        trt_profile_min_shapes: "input:1x3x256x192"
+        trt_profile_opt_shapes: "input:4x3x256x192"
+        trt_profile_max_shapes: "input:16x3x256x192"
+    - name: CUDAExecutionProvider
+
+videos:
+  - {id: "1_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/1_1_crop.mp4}
+  - {id: "1_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/1_2_crop.mp4}
+  - {id: "1_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/1_3_crop.mp4}
+  - {id: "2_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/2_1_crop.mp4}
+  - {id: "2_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/2_2_crop.mp4}
+  - {id: "2_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/2_3_crop.mp4}
+  - {id: "3_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/3_1_crop.mp4}
+  - {id: "3_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/3_2_crop.mp4}
+  - {id: "3_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/3_3_crop.mp4}
+  - {id: "4_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/4_1_crop.mp4}
+  - {id: "4_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/4_2_crop.mp4}
+  - {id: "4_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/4_3_crop.mp4}
+  - {id: "5_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/5_1_crop.mp4}
+  - {id: "5_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/5_2_crop.mp4}
+  - {id: "5_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/5_3_crop.mp4}
+  - {id: "6_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/6_1_crop.mp4}
+  - {id: "6_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/6_2_crop.mp4}
+  - {id: "6_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/6_3_crop.mp4}
+  - {id: "7_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/7_1_crop.mp4}
+  - {id: "7_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/7_2_crop.mp4}
+  - {id: "7_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/7_3_crop.mp4}
+  - {id: "8_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/8_1_crop.mp4}
+  - {id: "8_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/8_2_crop.mp4}
+  - {id: "8_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/8_3_crop.mp4}
+  - {id: "9_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/9_1_crop.mp4}
+  - {id: "9_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/9_2_crop.mp4}
+  - {id: "9_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/9_3_crop.mp4}
+  - {id: "10_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/10_1_crop.mp4}
+  - {id: "10_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/10_2_crop.mp4}
+  - {id: "10_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/10_3_crop.mp4}
+  - {id: "11_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/11_1_crop.mp4}
+  - {id: "11_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/11_2_crop.mp4}
+  - {id: "11_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/11_3_crop.mp4}
+  - {id: "12_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/12_1_crop.mp4}
+  - {id: "12_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/12_2_crop.mp4}
+  - {id: "12_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/12_3_crop.mp4}
+  - {id: "13_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/13_1_crop.mp4}
+  - {id: "13_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/13_2_crop.mp4}
+  - {id: "13_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/13_3_crop.mp4}
+  - {id: "14_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/14_1_crop.mp4}
+  - {id: "14_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/14_2_crop.mp4}
+  - {id: "14_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/14_3_crop.mp4}
+  - {id: "15_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/15_1_crop.mp4}
+  - {id: "15_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/15_2_crop.mp4}
+  - {id: "15_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/15_3_crop.mp4}
+  - {id: "16_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/16_1_crop.mp4}
+  - {id: "16_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/16_2_crop.mp4}
+  - {id: "16_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/16_3_crop.mp4}
+  - {id: "17_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/17_1_crop.mp4}
+  - {id: "17_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/17_2_crop.mp4}
+  - {id: "17_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/17_3_crop.mp4}
+  - {id: "18_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/18_1_crop.mp4}
+  - {id: "18_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/18_2_crop.mp4}
+  - {id: "18_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/18_3_crop.mp4}
+  - {id: "19_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/19_1_crop.mp4}
+  - {id: "19_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/19_2_crop.mp4}
+  - {id: "19_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/19_3_crop.mp4}
+  - {id: "20_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/20_1_crop.mp4}
+  - {id: "20_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/20_2_crop.mp4}
+  - {id: "20_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/20_3_crop.mp4}
+  - {id: "21_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/21_1_crop.mp4}
+  - {id: "21_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/21_2_crop.mp4}
+  - {id: "21_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/21_3_crop.mp4}
+  - {id: "22_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/22_1_crop.mp4}
+  - {id: "22_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/22_2_crop.mp4}
+  - {id: "22_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/22_3_crop.mp4}
+  - {id: "23_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/23_1_crop.mp4}
+  - {id: "23_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/23_2_crop.mp4}
+  - {id: "23_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/23_3_crop.mp4}
+  - {id: "24_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/24_1_crop.mp4}
+  - {id: "24_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/24_2_crop.mp4}
+  - {id: "24_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/24_3_crop.mp4}
+  - {id: "25_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/25_1_crop.mp4}
+  - {id: "25_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/25_2_crop.mp4}
+  - {id: "25_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/25_3_crop.mp4}
+  - {id: "26_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/26_1_crop.mp4}
+  - {id: "26_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/26_2_crop.mp4}
+  - {id: "26_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/26_3_crop.mp4}
+  - {id: "27_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/27_1_crop.mp4}
+  - {id: "27_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/27_2_crop.mp4}
+  - {id: "27_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/27_3_crop.mp4}
+  - {id: "28_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/28_1_crop.mp4}
+  - {id: "28_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/28_2_crop.mp4}
+  - {id: "28_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/28_3_crop.mp4}
+  - {id: "29_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/29_1_crop.mp4}
+  - {id: "29_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/29_2_crop.mp4}
+  - {id: "29_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/29_3_crop.mp4}
+  - {id: "30_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/30_1_crop.mp4}
+  - {id: "30_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/30_2_crop.mp4}
+  - {id: "30_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/30_3_crop.mp4}
+  - {id: "31_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/31_1_crop.mp4}
+  - {id: "31_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/31_2_crop.mp4}
+  - {id: "31_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/31_3_crop.mp4}
+  - {id: "32_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/32_1_crop.mp4}
+  - {id: "32_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/32_2_crop.mp4}
+  - {id: "32_3", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/32_3_crop.mp4}
+  - {id: "33_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/33_1_crop.mp4}
+  - {id: "34_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/34_1_crop.mp4}
+  - {id: "35_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/35_1_crop.mp4}
+  - {id: "36_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/36_1_crop.mp4}
+  - {id: "37_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/37_1_crop.mp4}
+  - {id: "38_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/38_1_crop.mp4}
+  - {id: "39_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/39_1_crop.mp4}
+  - {id: "40_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/40_1_crop.mp4}
+  - {id: "41_1", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/41_1_crop.mp4}
+  - {id: "41_2", camera: merl, path: data/raw/merl/videos/Videos_MERL_Shopping_Dataset/41_2_crop.mp4}
