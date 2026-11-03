@@ -178,6 +178,7 @@ def main() -> None:
         "stage1_contact": stage1(stage1_videos, c),
     }
     probe = fit_probe(fit, c)
+    np.savez(run / "probe.npz", coef=probe.coef_, intercept=probe.intercept_)
     labels = [hold_labels(v) for v in evaluate]
     zero = [frame_score(v, v["hold"]) for v in evaluate]
     probed = [frame_score(v, probe_hold(v, probe)) for v in evaluate]
