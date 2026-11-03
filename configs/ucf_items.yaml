@@ -1,0 +1,32 @@
+# Item pipeline on UCF-Crime (scripts/ucf_items_eval.py), fixed on 03/11/2026 before any result
+# of the pipeline on these videos. Nothing is fitted here: settings as configs/shop_items_synthetic.yaml
+# (hold threshold from the MERL dev run), zones hand-drawn or found by OWLv2.
+# Measures: on the theft videos, alerts that hit a theft interval (from its start to 2 s after it)
+# against the same alerts with the labels rolled inside each video; alerts per hour on the theft
+# videos and on the normal ones. Expected, declared before running: no better than the rolled
+# labels, since at 320 x 240 the hand is a few pixels and the product-in-hand stage did not
+# transfer to a new camera even at 720p (synthetic videos).
+name: ucf_items
+hands: data/features/ucf_hands
+videos_from: configs/pose_extract_ucf_items.yaml
+fps: 15
+hold:
+  source: zero_shot
+  probe: null
+  threshold: 0.7148687243461609 # Youden on MERL subjects 1-20, runs/20261103-012826_merl_stages_dev
+contact: {push: 0.25, min_conf: 0.3, max_gap: 3, min_frames: 2}
+take: {window: 15}
+release: {body_radius: 0.75, max_gap: 3, min_frames: 5, look: 3}
+payment_grace_seconds: 20
+link_seconds: 2
+zones:
+  manual: configs/zones/ucf_manual.yaml
+  auto: runs/20261103-075958_auto_zones_ucf_items/zones.yaml
+sets:
+  official: data/raw/ucf_crime/Temporal_Anomaly_Annotation_for_Testing_Videos.txt
+  source_fps: 30 # the annotation counts frames of the 30 fps source
+  holdout: configs/uca_holdout_labels.yaml
+merge_seconds: 2.0
+hit_after_seconds: 2.0
+seed: 0
+null_draws: 1000
