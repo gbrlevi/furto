@@ -1,0 +1,118 @@
+# UCF-Crime for the item pipeline: the 21 officially annotated Shoplifting videos, the 13
+# held out with UCA labels and the 38 normal videos of the measure part of the earlier split
+# (scripts/vlm_theft_eval.py normal_parts). 320 x 240, 30 fps. Same stack as configs/pose_extract_merl.yaml.
+name: pose_extract_ucf_items
+device: cuda:0
+target_fps: 15
+max_output_frames: null
+copy_to: data/interim/ucf_items
+
+detector:
+  name: yolov8m
+  weights: data/weights/ultralytics/yolov8m.pt
+  conf: 0.1
+  imgsz: 640
+  half: false
+
+tracker:
+  tracker_type: bytetrack
+  track_high_thresh: 0.25
+  track_low_thresh: 0.1
+  new_track_thresh: 0.25
+  track_buffer: 30
+  match_thresh: 0.8
+  fuse_score: true
+
+pose:
+  name: td-hm_hrnet-w32_8xb64-210e_coco-256x192
+  config: data/weights/mmpose/td-hm_hrnet-w32_8xb64-210e_coco-256x192.py
+  weights: data/weights/mmpose/td-hm_hrnet-w32_8xb64-210e_coco-256x192-81c58e40_20220909.pth
+  flip_test: true
+
+onnx:
+  fp16: false
+  opset: 17
+  providers:
+    - name: TensorrtExecutionProvider
+      options:
+        trt_fp16_enable: true
+        trt_engine_cache_enable: true
+        trt_engine_cache_path: data/weights/trt_cache
+        trt_profile_min_shapes: "input:1x3x256x192"
+        trt_profile_opt_shapes: "input:4x3x256x192"
+        trt_profile_max_shapes: "input:16x3x256x192"
+    - name: CUDAExecutionProvider
+
+videos:
+  - {id: "Shoplifting001_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting001_x264.mp4}
+  - {id: "Shoplifting004_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting004_x264.mp4}
+  - {id: "Shoplifting005_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting005_x264.mp4}
+  - {id: "Shoplifting007_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting007_x264.mp4}
+  - {id: "Shoplifting010_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting010_x264.mp4}
+  - {id: "Shoplifting015_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting015_x264.mp4}
+  - {id: "Shoplifting016_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting016_x264.mp4}
+  - {id: "Shoplifting017_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting017_x264.mp4}
+  - {id: "Shoplifting020_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting020_x264.mp4}
+  - {id: "Shoplifting021_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting021_x264.mp4}
+  - {id: "Shoplifting022_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting022_x264.mp4}
+  - {id: "Shoplifting027_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting027_x264.mp4}
+  - {id: "Shoplifting028_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting028_x264.mp4}
+  - {id: "Shoplifting029_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting029_x264.mp4}
+  - {id: "Shoplifting031_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting031_x264.mp4}
+  - {id: "Shoplifting033_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting033_x264.mp4}
+  - {id: "Shoplifting034_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting034_x264.mp4}
+  - {id: "Shoplifting037_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting037_x264.mp4}
+  - {id: "Shoplifting039_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting039_x264.mp4}
+  - {id: "Shoplifting044_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting044_x264.mp4}
+  - {id: "Shoplifting049_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting049_x264.mp4}
+  - {id: "Shoplifting006_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting006_x264.mp4}
+  - {id: "Shoplifting008_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting008_x264.mp4}
+  - {id: "Shoplifting009_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting009_x264.mp4}
+  - {id: "Shoplifting018_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting018_x264.mp4}
+  - {id: "Shoplifting019_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting019_x264.mp4}
+  - {id: "Shoplifting024_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting024_x264.mp4}
+  - {id: "Shoplifting025_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting025_x264.mp4}
+  - {id: "Shoplifting026_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting026_x264.mp4}
+  - {id: "Shoplifting032_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting032_x264.mp4}
+  - {id: "Shoplifting036_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting036_x264.mp4}
+  - {id: "Shoplifting038_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting038_x264.mp4}
+  - {id: "Shoplifting040_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting040_x264.mp4}
+  - {id: "Shoplifting041_x264", camera: ucf, path: data/raw/ucf_crime/Shoplifting041_x264.mp4}
+  - {id: "Normal_Videos_024_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_024_x264.mp4}
+  - {id: "Normal_Videos_041_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_041_x264.mp4}
+  - {id: "Normal_Videos_048_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_048_x264.mp4}
+  - {id: "Normal_Videos_196_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_196_x264.mp4}
+  - {id: "Normal_Videos_210_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_210_x264.mp4}
+  - {id: "Normal_Videos_217_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_217_x264.mp4}
+  - {id: "Normal_Videos_224_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_224_x264.mp4}
+  - {id: "Normal_Videos_312_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_312_x264.mp4}
+  - {id: "Normal_Videos_317_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_317_x264.mp4}
+  - {id: "Normal_Videos_401_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_401_x264.mp4}
+  - {id: "Normal_Videos_452_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_452_x264.mp4}
+  - {id: "Normal_Videos_621_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_621_x264.mp4}
+  - {id: "Normal_Videos_641_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_641_x264.mp4}
+  - {id: "Normal_Videos_656_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_656_x264.mp4}
+  - {id: "Normal_Videos_696_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_696_x264.mp4}
+  - {id: "Normal_Videos_758_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_758_x264.mp4}
+  - {id: "Normal_Videos_782_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_782_x264.mp4}
+  - {id: "Normal_Videos_801_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_801_x264.mp4}
+  - {id: "Normal_Videos_828_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_828_x264.mp4}
+  - {id: "Normal_Videos_831_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_831_x264.mp4}
+  - {id: "Normal_Videos_866_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_866_x264.mp4}
+  - {id: "Normal_Videos_876_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_876_x264.mp4}
+  - {id: "Normal_Videos_882_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_882_x264.mp4}
+  - {id: "Normal_Videos_883_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_883_x264.mp4}
+  - {id: "Normal_Videos_891_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_891_x264.mp4}
+  - {id: "Normal_Videos_899_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_899_x264.mp4}
+  - {id: "Normal_Videos_900_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_900_x264.mp4}
+  - {id: "Normal_Videos_902_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_902_x264.mp4}
+  - {id: "Normal_Videos_907_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_907_x264.mp4}
+  - {id: "Normal_Videos_908_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_908_x264.mp4}
+  - {id: "Normal_Videos_914_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_914_x264.mp4}
+  - {id: "Normal_Videos_915_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_915_x264.mp4}
+  - {id: "Normal_Videos_929_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_929_x264.mp4}
+  - {id: "Normal_Videos_932_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_932_x264.mp4}
+  - {id: "Normal_Videos_935_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_935_x264.mp4}
+  - {id: "Normal_Videos_937_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_937_x264.mp4}
+  - {id: "Normal_Videos_940_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_940_x264.mp4}
+  - {id: "Normal_Videos_944_x264", camera: ucf_normal, path: data/raw/ucf_crime/normal_test/Normal_Videos_944_x264.mp4}
