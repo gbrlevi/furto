@@ -6,6 +6,7 @@ from tcc.rules.shopping import (
     Release,
     ShopAlert,
     Take,
+    after_contact,
     contacts,
     hand_conf,
     hand_points,
@@ -120,3 +121,14 @@ def test_shop_alerts_concealment_and_unpaid_items() -> None:
     assert shop_alerts(two, [], {0: [100]}, [(90, 1)], 0.5, 10)[0].items == 2
     # a take after the exit belongs to the next visit
     assert shop_alerts([Take(0, 1, 150, 0.0, 0.9)], [], {0: [100]}, [], 0.5, 10) == []
+
+
+def test_after_contact_keeps_only_releases_of_items_from_the_shelf() -> None:
+    released = [
+        Release(0, 1, 40, 60, "body"),  # contact ended at 35: within 10 frames before the hold
+        Release(0, 0, 100, 120, "body"),  # no contact near it
+        Release(1, 1, 40, 60, "body"),  # another person's contact does not count
+        Release(0, 1, 130, 150, "body"),  # contact ending during the hold
+    ]
+    found = [Contact(0, 1, 20, 35), Contact(0, 0, 135, 140)]
+    assert after_contact(released, found, 10) == [released[0], released[3]]

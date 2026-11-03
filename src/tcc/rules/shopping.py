@@ -164,6 +164,18 @@ def releases(
     return sorted(out, key=lambda r: (r.frame, r.track, r.hand))
 
 
+def after_contact(
+    released: Sequence[Release], contacts_: Sequence[Contact], link: int
+) -> list[Release]:
+    """Releases of an item that came from the shelf: a contact of the same track ended between
+    `link` frames before the hold began and the release (take -> hold -> let go)."""
+    return [
+        r
+        for r in released
+        if any(c.track == r.track and r.held_from - link <= c.end <= r.frame for c in contacts_)
+    ]
+
+
 def shop_alerts(
     taken: Sequence[Take],
     released: Sequence[Release],
