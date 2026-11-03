@@ -132,6 +132,18 @@ def probe_hold(v: dict[str, Any], probe: LogisticRegression) -> np.ndarray:
     return np.where(np.isfinite(v["hold"]), p, np.nan)
 
 
+def youden(scores: list[np.ndarray], labels: list[np.ndarray]) -> float:
+    """Threshold with the largest TPR - FPR on the frames of known class (`>=` is positive)."""
+    s = np.concatenate([x[np.isfinite(x) & (y >= 0)] for x, y in zip(scores, labels, strict=True)])
+    y = np.concatenate([y[np.isfinite(x) & (y >= 0)] for x, y in zip(scores, labels, strict=True)])
+    best, value = -1.0, float("nan")
+    for t in np.unique(s):
+        j = (s[y == 1] >= t).mean() - (s[y == 0] >= t).mean()
+        if j > best:
+            best, value = j, float(t)
+    return value
+
+
 def take_auc(videos: list[dict[str, Any]], frames: list[np.ndarray], c: dict) -> dict[str, Any]:
     """After each true contact: hold median in the window after minus before; label 1 when an
     "inspect product" starts within `gap` frames after the contact ends."""
@@ -172,6 +184,11 @@ def main() -> None:
     labels = [hold_labels(v) for v in evaluate]
     zero = [frame_score(v, v["hold"]) for v in evaluate]
     probed = [frame_score(v, probe_hold(v, probe)) for v in evaluate]
+    fit_labels = [hold_labels(v) for v in fit]
+    results["hold_threshold_on_fit"] = {
+        "zero_shot": youden([frame_score(v, v["hold"]) for v in fit], fit_labels),
+        "probe": youden([frame_score(v, probe_hold(v, probe)) for v in fit], fit_labels),
+    }
     results["stage2_hold"] = {
         "zero_shot": boot_auc(evaluate, zero, labels, c),
         "probe": boot_auc(evaluate, probed, labels, c),
