@@ -7,7 +7,7 @@ fps: 15
 hold:
   source: zero_shot # or probe (logistic weights from the MERL dev run)
   probe: null
-  threshold: null # filled from the MERL dev run before running this file
+  threshold: 0.7148687243461609 # Youden on MERL subjects 1-20, runs/20261103-012826_merl_stages_dev
 contact: {push: 0.25, min_conf: 0.3, max_gap: 3, min_frames: 2} # as configs/merl_stages.yaml
 take: {window: 15}
 release:

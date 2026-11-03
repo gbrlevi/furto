@@ -1,0 +1,50 @@
+# Item pipeline on the ten synthetic videos: shelf contact -> product in hand -> where it was
+# let go -> paid or not. Zones drawn on frames of each video before any result; expectations
+# declared below before running. The hold threshold comes from the MERL dev run
+# (Youden on subjects 1-20), never from these videos.
+hands: data/features/synthetic_hands # from scripts/hand_hold_scores.py
+fps: 15
+hold:
+  source: probe # secondary variant: logistic probe fitted on MERL subjects 1-20
+  probe: runs/20261103-012826_merl_stages_dev/probe.npz
+  threshold: 0.638933002948761 # Youden of the probe on MERL subjects 1-20
+contact: {push: 0.25, min_conf: 0.3, max_gap: 3, min_frames: 2} # as configs/merl_stages.yaml
+take: {window: 15}
+release:
+  body_radius: 0.75 # torso lengths from the torso centre: pockets, waistband, bag at the hip
+  max_gap: 3
+  min_frames: 5 # a hold shorter than 1/3 s is not an item
+  look: 3 # last frames of the hold that say where the hand was
+payment_grace_seconds: 20
+exit: track_end # 10 s clips: the end of the track stands for leaving the view
+# Expected (declared before running): a concealment alert in every *_concealment video and
+# none in the *_normal ones. Known risk: in p4_normal she puts her phone into the bag at the
+# end, the same gesture as hiding an item. Unpaid exits are reported, not scored: the clips
+# end before most people would pay or leave.
+scenes:
+  store_a: # p1, p3
+    shelf: [[[0, 160], [500, 160], [500, 720], [0, 720]], [[570, 100], [710, 100], [710, 500], [570, 500]]]
+    checkout: [[860, 360], [1060, 360], [1060, 620], [860, 620]]
+  store_b: # p2
+    shelf: [[[0, 160], [490, 160], [490, 680], [0, 680]], [[560, 110], [910, 110], [910, 690], [560, 690]]]
+    checkout: [[940, 340], [1080, 340], [1080, 540], [940, 540]]
+  store_c: # p4
+    shelf: [[[0, 120], [490, 120], [490, 720], [0, 720]], [[500, 170], [660, 170], [660, 560], [500, 560]]]
+    checkout: [[650, 280], [750, 280], [750, 400], [650, 400]]
+  store_d: # p5_concealment
+    shelf: [[[0, 140], [420, 140], [420, 720], [0, 720]], [[490, 130], [640, 130], [640, 620], [490, 620]]]
+    checkout: [[920, 380], [1040, 380], [1040, 660], [920, 660]]
+  store_e: # p5_normal
+    shelf: [[[380, 150], [1020, 150], [1020, 520], [380, 520]], [[170, 200], [410, 200], [410, 620], [170, 620]]]
+    checkout: [[780, 370], [940, 370], [940, 600], [780, 600]]
+videos: # payments: [seconds, items] as the prompts describe them
+  - {id: p1_concealment, scene: store_a, expected: concealment, payments: []}
+  - {id: p1_normal, scene: store_a, expected: normal, payments: [[9.0, 1]]}
+  - {id: p2_concealment, scene: store_b, expected: concealment, payments: []}
+  - {id: p2_normal, scene: store_b, expected: normal, payments: []}
+  - {id: p3_concealment, scene: store_a, expected: concealment, payments: []}
+  - {id: p3_normal, scene: store_a, expected: normal, payments: []}
+  - {id: p4_concealment, scene: store_c, expected: concealment, payments: []}
+  - {id: p4_normal, scene: store_c, expected: normal, payments: []}
+  - {id: p5_concealment, scene: store_d, expected: concealment, payments: [[8.0, 1]]}
+  - {id: p5_normal, scene: store_e, expected: normal, payments: [[8.0, 2]]}
