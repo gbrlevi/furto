@@ -1,0 +1,19 @@
+# Hand crops of the MERL poses for the product-in-hand stage. Prompts as in
+# configs/hand_object_probe.yaml (fixed on 01/11/2026 before any result); crop sized by the
+# larger side of the box, since the overhead camera sees people from above.
+model: openai/clip-vit-base-patch16
+poses: data/interim/merl
+videos: data/raw/merl/videos/Videos_MERL_Shopping_Dataset
+video_name: "{}_crop.mp4"
+pose_fps: 15
+crop_fraction: 0.25
+min_crop: 48
+forearm_push: 0.25
+batch: 256
+out: data/features/merl_hands
+holding:
+  - a photo of a hand holding a packaged product
+  - a photo of a hand holding a snack bar or a can
+empty:
+  - a photo of an empty hand
+  - a photo of an open hand with nothing in it
