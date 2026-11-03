@@ -1,0 +1,26 @@
+# Stages 1 (hand contact with the shelf) and 2 (product in hand) of the item pipeline on the
+# MERL Shopping Dataset. Every value below was fixed before any result on MERL: the shelf
+# polygon from a frame of 1_1 (the camera is fixed in all videos), the rest by hand.
+# "dev" = subjects 1-26 (train 1-20 fits the probe, val 21-26 measures it); "test" =
+# subjects 27-41, evaluated once with this file frozen (frozen_commit below).
+hands: data/features/merl_hands # from scripts/hand_hold_scores.py
+labels: data/raw/merl/labels/Labels_MERL_Shopping_Dataset
+fps: 15
+shelf: [[190, 0], [920, 0], [920, 300], [190, 300]] # pixels of the 920 x 680 video
+contact:
+  push: 0.25 # hand centre = wrist + 0.25 forearm, as the crops
+  min_conf: 0.3
+  max_gap: 3 # frames joined inside one contact (0.2 s)
+  min_frames: 2
+truth:
+  actions: [reach, retract, hand_in_shelf] # a true contact is their union
+  merge_gap: 3
+match_iou: [0.1, 0.3, 0.5] # 0.3 is the main one
+take:
+  window: 15 # frames (1 s) before and after a contact for the hold median
+  gap: 15 # a true take: inspect_product starts within 1 s after the true contact ends
+probe:
+  C: 1.0 # logistic regression on the CLIP embedding of one hand
+  max_iter: 2000
+seed: 0
+null_draws: 1000
