@@ -1,0 +1,15 @@
+# Automatic shelf and checkout zones (scripts/auto_zones.py), fixed before any result with them.
+# OWLv2 open-vocabulary detector on the median background of each video; the queries name what
+# a shop shows at its shelves and at its till. Threshold 0.1 is the one of the OWLv2 examples.
+name: auto_zones_ucf_items
+model: google/owlv2-base-patch16-ensemble
+device: cuda
+background_frames: 15
+threshold: 0.1
+nms_iou: 0.3
+max_area: 0.5 # a box over half the image would put every hand in the zone
+max_boxes: {shelf: 6, checkout: 1}
+queries:
+  shelf: [a shelf with products, a store shelf, a refrigerator with drinks, a clothing rack, a display case with products]
+  checkout: [a checkout counter, a cash register, a payment terminal]
+videos_from: configs/pose_extract_ucf_items.yaml
