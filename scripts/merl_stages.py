@@ -16,6 +16,7 @@ from typing import Any
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_curve
 
 from tcc.data.merl import load_labels, merge, split_of, to_fps
 from tcc.data.schema import VideoPoses
@@ -136,12 +137,8 @@ def youden(scores: list[np.ndarray], labels: list[np.ndarray]) -> float:
     """Threshold with the largest TPR - FPR on the frames of known class (`>=` is positive)."""
     s = np.concatenate([x[np.isfinite(x) & (y >= 0)] for x, y in zip(scores, labels, strict=True)])
     y = np.concatenate([y[np.isfinite(x) & (y >= 0)] for x, y in zip(scores, labels, strict=True)])
-    best, value = -1.0, float("nan")
-    for t in np.unique(s):
-        j = (s[y == 1] >= t).mean() - (s[y == 0] >= t).mean()
-        if j > best:
-            best, value = j, float(t)
-    return value
+    fpr, tpr, thresholds = roc_curve(y, s)
+    return float(thresholds[int(np.argmax(tpr - fpr))])
 
 
 def take_auc(videos: list[dict[str, Any]], frames: list[np.ndarray], c: dict) -> dict[str, Any]:
