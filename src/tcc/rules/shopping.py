@@ -143,9 +143,10 @@ def releases(
     look: int,
 ) -> list[Release]:
     """End of every run in which a hand held something (hold >= threshold). Where it was let
-    go: the first zone of `places` (in order) the hand touched in the `look` frames around
-    the end, else "body" when the hand was near the torso then, else "unknown". A run that
-    reaches the last frame of its track is not a release."""
+    go, from the hand in the last `look` frames of the run: "body" when it was near the
+    torso in at least half of them (in 2D a person in front of a shelf is also inside the
+    shelf zone, so the body comes first), else the first zone of `places` it touched, else
+    "unknown". A run that reaches the last frame of its track is not a release."""
     out = []
     for track in np.unique(video.track_id).tolist():
         own = video.track_id == track
@@ -155,10 +156,10 @@ def releases(
             for a, b in runs(np.unique(video.frame_idx[held]), max_gap, min_frames):
                 if b + max_gap >= last:
                     continue
-                around = own & (video.frame_idx >= b - look) & (video.frame_idx <= b + look)
-                where = next((n for n, m in places.items() if m[around, hand].any()), None)
+                end = own & (video.frame_idx >= b - look) & (video.frame_idx <= b)
+                where = "body" if body[end, hand].mean() >= 0.5 else None
                 if where is None:
-                    where = "body" if body[around, hand].any() else "unknown"
+                    where = next((n for n, m in places.items() if m[end, hand].any()), "unknown")
                 out.append(Release(track, hand, a, b, where))
     return sorted(out, key=lambda r: (r.frame, r.track, r.hand))
 

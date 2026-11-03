@@ -79,6 +79,7 @@ def test_releases_name_the_place_where_the_hand_let_go() -> None:
     hold[10:30, 1] = 0.9  # let go at frame 29 with the hand on the body (hips)
     hold[50:70, 1] = 0.9  # let go at frame 69 in the basket
     _move_right_hand(v, slice(66, 72), 25, 175)
+    _move_right_hand(v, slice(26, 28), 25, 175)  # 2 of the last 3 frames near the body
     hold[80:100, 0] = 0.9  # still holding when the track ends: not a release
     points = hand_points(v.keypoints, 0.0)
     places = {"basket": hands_in_zone(points, hand_conf(v.keypoints), BASKET, 0.3)}
