@@ -154,10 +154,11 @@ def add_cuda_dll_dirs() -> list[str]:
 
 
 def onnx_estimator(
-    model: Any, onnx_path: Path, providers: list[Any], fp16: bool
+    model: Any, onnx_path: Path, providers: list[Any], fp16: bool, max_batch: int = 16
 ) -> tuple[PoseEstimator, Any]:  # Any: MMPose model and ONNX Runtime session
     """Pose estimator with the MMPose pipeline and decoder around an ONNX Runtime network.
-    Test-time flip follows `model.test_cfg`; the flipped crops go in the same batch."""
+    Test-time flip follows `model.test_cfg`; the flipped crops go in the same batch, run in
+    chunks of at most `max_batch` crops (the largest TensorRT profile shape)."""
     import onnxruntime as ort
 
     session = ort.InferenceSession(str(onnx_path), providers=providers)
@@ -170,7 +171,13 @@ def onnx_estimator(
         data = model.data_preprocessor(batch, False)
         inputs, samples = data["inputs"], data["data_samples"]
         x = torch.cat([inputs, inputs.flip(-1)]) if flip else inputs
-        out = session.run(["heatmaps"], {"input": x.cpu().numpy().astype(dtype)})[0]
+        xs = x.cpu().numpy().astype(dtype)
+        out = np.concatenate(
+            [
+                session.run(["heatmaps"], {"input": xs[i : i + max_batch]})[0]
+                for i in range(0, len(xs), max_batch)
+            ]
+        )
         heat = torch.from_numpy(out.astype(np.float32)).to(inputs.device)
         n = len(inputs)
         if flip:
