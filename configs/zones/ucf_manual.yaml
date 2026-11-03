@@ -1,0 +1,573 @@
+# Hand-drawn shelf and checkout zones of the UCF-Crime videos of configs/pose_extract_ucf_items.yaml,
+# drawn on 03/11/2026 by Claude as rectangles on the median background of each video (grid every 40
+# px), before any automatic zone or pipeline result on these videos was seen. A shelf is anything
+# that displays products (shelves, racks, glass counters); a checkout is a till, register or service
+# counter. Scenes with neither (streets, offices, parking) have no zones. Rough: 320 x 240 images.
+Normal_Videos_024_x264:
+  checkout:
+  - - [60, 90]
+    - [300, 90]
+    - [300, 140]
+    - [60, 140]
+  shelf:
+  - - [0, 30]
+    - [320, 30]
+    - [320, 80]
+    - [0, 80]
+Normal_Videos_041_x264:
+  checkout:
+  - - [30, 30]
+    - [90, 30]
+    - [90, 140]
+    - [30, 140]
+  - - [200, 30]
+    - [290, 30]
+    - [290, 140]
+    - [200, 140]
+  shelf:
+  - - [200, 0]
+    - [320, 0]
+    - [320, 50]
+    - [200, 50]
+Normal_Videos_048_x264:
+  checkout: []
+  shelf: []
+Normal_Videos_196_x264:
+  checkout: []
+  shelf: []
+Normal_Videos_210_x264:
+  checkout: []
+  shelf: []
+Normal_Videos_217_x264:
+  checkout: []
+  shelf: []
+Normal_Videos_224_x264:
+  checkout: []
+  shelf:
+  - - [40, 60]
+    - [220, 60]
+    - [220, 170]
+    - [40, 170]
+Normal_Videos_312_x264:
+  checkout: []
+  shelf:
+  - - [0, 40]
+    - [150, 40]
+    - [150, 200]
+    - [0, 200]
+  - - [160, 40]
+    - [320, 40]
+    - [320, 200]
+    - [160, 200]
+Normal_Videos_317_x264:
+  checkout:
+  - - [170, 60]
+    - [310, 60]
+    - [310, 200]
+    - [170, 200]
+  shelf: []
+Normal_Videos_401_x264:
+  checkout:
+  - - [250, 60]
+    - [320, 60]
+    - [320, 200]
+    - [250, 200]
+  shelf:
+  - - [0, 20]
+    - [60, 20]
+    - [60, 200]
+    - [0, 200]
+  - - [60, 20]
+    - [280, 20]
+    - [280, 70]
+    - [60, 70]
+Normal_Videos_452_x264:
+  checkout: []
+  shelf:
+  - - [0, 20]
+    - [320, 20]
+    - [320, 100]
+    - [0, 100]
+Normal_Videos_621_x264:
+  checkout: []
+  shelf: []
+Normal_Videos_641_x264:
+  checkout: []
+  shelf:
+  - - [0, 70]
+    - [120, 70]
+    - [120, 240]
+    - [0, 240]
+  - - [200, 40]
+    - [320, 40]
+    - [320, 240]
+    - [200, 240]
+Normal_Videos_656_x264:
+  checkout: []
+  shelf: []
+Normal_Videos_696_x264:
+  checkout: []
+  shelf: []
+Normal_Videos_758_x264:
+  checkout: []
+  shelf:
+  - - [30, 20]
+    - [150, 20]
+    - [150, 140]
+    - [30, 140]
+Normal_Videos_782_x264:
+  checkout: []
+  shelf: []
+Normal_Videos_801_x264:
+  checkout:
+  - - [80, 30]
+    - [240, 30]
+    - [240, 140]
+    - [80, 140]
+  shelf:
+  - - [220, 20]
+    - [320, 20]
+    - [320, 90]
+    - [220, 90]
+Normal_Videos_828_x264:
+  checkout: []
+  shelf: []
+Normal_Videos_831_x264:
+  checkout: []
+  shelf: []
+Normal_Videos_866_x264:
+  checkout: []
+  shelf: []
+Normal_Videos_876_x264:
+  checkout:
+  - - [140, 60]
+    - [320, 60]
+    - [320, 240]
+    - [140, 240]
+  shelf:
+  - - [0, 0]
+    - [120, 0]
+    - [120, 150]
+    - [0, 150]
+Normal_Videos_882_x264:
+  checkout: []
+  shelf: []
+Normal_Videos_883_x264:
+  checkout: []
+  shelf: []
+Normal_Videos_891_x264:
+  checkout:
+  - - [80, 120]
+    - [200, 120]
+    - [200, 200]
+    - [80, 200]
+  shelf:
+  - - [0, 30]
+    - [150, 30]
+    - [150, 100]
+    - [0, 100]
+Normal_Videos_899_x264:
+  checkout: []
+  shelf:
+  - - [40, 60]
+    - [260, 60]
+    - [260, 180]
+    - [40, 180]
+Normal_Videos_900_x264:
+  checkout: []
+  shelf: []
+Normal_Videos_902_x264:
+  checkout: []
+  shelf: []
+Normal_Videos_907_x264:
+  checkout: []
+  shelf: []
+Normal_Videos_908_x264:
+  checkout: []
+  shelf: []
+Normal_Videos_914_x264:
+  checkout: []
+  shelf: []
+Normal_Videos_915_x264:
+  checkout: []
+  shelf: []
+Normal_Videos_929_x264:
+  checkout:
+  - - [40, 120]
+    - [320, 120]
+    - [320, 200]
+    - [40, 200]
+  shelf: []
+Normal_Videos_932_x264:
+  checkout: []
+  shelf:
+  - - [0, 20]
+    - [40, 20]
+    - [40, 200]
+    - [0, 200]
+  - - [50, 60]
+    - [200, 60]
+    - [200, 150]
+    - [50, 150]
+Normal_Videos_935_x264:
+  checkout: []
+  shelf: []
+Normal_Videos_937_x264:
+  checkout: []
+  shelf: []
+Normal_Videos_940_x264:
+  checkout: []
+  shelf:
+  - - [60, 20]
+    - [300, 20]
+    - [300, 150]
+    - [60, 150]
+Normal_Videos_944_x264:
+  checkout: []
+  shelf: []
+Shoplifting001_x264:
+  checkout:
+  - - [0, 60]
+    - [150, 60]
+    - [150, 240]
+    - [0, 240]
+  shelf:
+  - - [160, 0]
+    - [320, 0]
+    - [320, 240]
+    - [160, 240]
+Shoplifting004_x264:
+  checkout:
+  - - [0, 80]
+    - [320, 80]
+    - [320, 200]
+    - [0, 200]
+  shelf: []
+Shoplifting005_x264:
+  checkout: []
+  shelf:
+  - - [30, 0]
+    - [110, 0]
+    - [110, 240]
+    - [30, 240]
+  - - [230, 0]
+    - [290, 0]
+    - [290, 240]
+    - [230, 240]
+Shoplifting006_x264:
+  checkout: []
+  shelf:
+  - - [160, 40]
+    - [320, 40]
+    - [320, 240]
+    - [160, 240]
+Shoplifting007_x264:
+  checkout: []
+  shelf:
+  - - [40, 0]
+    - [200, 0]
+    - [200, 110]
+    - [40, 110]
+  - - [0, 110]
+    - [200, 110]
+    - [200, 240]
+    - [0, 240]
+Shoplifting008_x264:
+  checkout:
+  - - [60, 60]
+    - [240, 60]
+    - [240, 200]
+    - [60, 200]
+  shelf:
+  - - [0, 0]
+    - [60, 0]
+    - [60, 240]
+    - [0, 240]
+  - - [60, 0]
+    - [220, 0]
+    - [220, 60]
+    - [60, 60]
+Shoplifting009_x264:
+  checkout: []
+  shelf:
+  - - [200, 140]
+    - [320, 140]
+    - [320, 240]
+    - [200, 240]
+Shoplifting010_x264:
+  checkout: []
+  shelf:
+  - - [0, 0]
+    - [150, 0]
+    - [150, 240]
+    - [0, 240]
+  - - [160, 100]
+    - [280, 100]
+    - [280, 240]
+    - [160, 240]
+Shoplifting015_x264:
+  checkout:
+  - - [60, 150]
+    - [300, 150]
+    - [300, 240]
+    - [60, 240]
+  shelf:
+  - - [170, 0]
+    - [320, 0]
+    - [320, 150]
+    - [170, 150]
+Shoplifting016_x264:
+  checkout: []
+  shelf:
+  - - [0, 0]
+    - [70, 0]
+    - [70, 200]
+    - [0, 200]
+  - - [220, 0]
+    - [320, 0]
+    - [320, 90]
+    - [220, 90]
+Shoplifting017_x264:
+  checkout:
+  - - [0, 60]
+    - [280, 60]
+    - [280, 200]
+    - [0, 200]
+  shelf:
+  - - [180, 0]
+    - [300, 0]
+    - [300, 60]
+    - [180, 60]
+Shoplifting018_x264:
+  checkout: []
+  shelf:
+  - - [0, 0]
+    - [80, 0]
+    - [80, 160]
+    - [0, 160]
+  - - [150, 0]
+    - [240, 0]
+    - [240, 160]
+    - [150, 160]
+  - - [240, 0]
+    - [320, 0]
+    - [320, 240]
+    - [240, 240]
+Shoplifting019_x264:
+  checkout: []
+  shelf: []
+Shoplifting020_x264:
+  checkout:
+  - - [0, 60]
+    - [320, 60]
+    - [320, 140]
+    - [0, 140]
+  shelf:
+  - - [120, 0]
+    - [320, 0]
+    - [320, 60]
+    - [120, 60]
+Shoplifting021_x264:
+  checkout:
+  - - [200, 120]
+    - [320, 120]
+    - [320, 200]
+    - [200, 200]
+  shelf:
+  - - [0, 20]
+    - [120, 20]
+    - [120, 100]
+    - [0, 100]
+Shoplifting022_x264:
+  checkout: []
+  shelf:
+  - - [15, 30]
+    - [150, 30]
+    - [150, 200]
+    - [15, 200]
+  - - [180, 30]
+    - [300, 30]
+    - [300, 200]
+    - [180, 200]
+Shoplifting024_x264:
+  checkout:
+  - - [40, 90]
+    - [200, 90]
+    - [200, 180]
+    - [40, 180]
+  shelf:
+  - - [100, 20]
+    - [260, 20]
+    - [260, 70]
+    - [100, 70]
+Shoplifting025_x264:
+  checkout: []
+  shelf:
+  - - [0, 0]
+    - [320, 0]
+    - [320, 150]
+    - [0, 150]
+Shoplifting026_x264:
+  checkout: []
+  shelf:
+  - - [0, 20]
+    - [150, 20]
+    - [150, 200]
+    - [0, 200]
+Shoplifting027_x264:
+  checkout: []
+  shelf:
+  - - [70, 30]
+    - [140, 30]
+    - [140, 240]
+    - [70, 240]
+  - - [140, 0]
+    - [200, 0]
+    - [200, 100]
+    - [140, 100]
+Shoplifting028_x264:
+  checkout: []
+  shelf:
+  - - [20, 20]
+    - [110, 20]
+    - [110, 200]
+    - [20, 200]
+  - - [160, 20]
+    - [290, 20]
+    - [290, 200]
+    - [160, 200]
+Shoplifting029_x264:
+  checkout: []
+  shelf:
+  - - [0, 30]
+    - [200, 30]
+    - [200, 150]
+    - [0, 150]
+  - - [190, 30]
+    - [300, 30]
+    - [300, 200]
+    - [190, 200]
+Shoplifting031_x264:
+  checkout: []
+  shelf:
+  - - [60, 20]
+    - [280, 20]
+    - [280, 80]
+    - [60, 80]
+  - - [260, 80]
+    - [320, 80]
+    - [320, 200]
+    - [260, 200]
+Shoplifting032_x264:
+  checkout: []
+  shelf:
+  - - [100, 30]
+    - [200, 30]
+    - [200, 160]
+    - [100, 160]
+  - - [220, 30]
+    - [320, 30]
+    - [320, 200]
+    - [220, 200]
+Shoplifting033_x264:
+  checkout: []
+  shelf:
+  - - [160, 0]
+    - [320, 0]
+    - [320, 110]
+    - [160, 110]
+  - - [90, 60]
+    - [230, 60]
+    - [230, 150]
+    - [90, 150]
+Shoplifting034_x264:
+  checkout: []
+  shelf:
+  - - [0, 30]
+    - [110, 30]
+    - [110, 240]
+    - [0, 240]
+  - - [200, 20]
+    - [320, 20]
+    - [320, 240]
+    - [200, 240]
+Shoplifting036_x264:
+  checkout: []
+  shelf:
+  - - [0, 0]
+    - [60, 0]
+    - [60, 200]
+    - [0, 200]
+  - - [60, 0]
+    - [220, 0]
+    - [220, 100]
+    - [60, 100]
+Shoplifting037_x264:
+  checkout: []
+  shelf:
+  - - [0, 50]
+    - [200, 50]
+    - [200, 200]
+    - [0, 200]
+Shoplifting038_x264:
+  checkout: []
+  shelf:
+  - - [40, 40]
+    - [320, 40]
+    - [320, 140]
+    - [40, 140]
+Shoplifting039_x264:
+  checkout: []
+  shelf:
+  - - [0, 20]
+    - [60, 20]
+    - [60, 180]
+    - [0, 180]
+Shoplifting040_x264:
+  checkout: []
+  shelf:
+  - - [0, 0]
+    - [160, 0]
+    - [160, 200]
+    - [0, 200]
+  - - [160, 80]
+    - [300, 80]
+    - [300, 160]
+    - [160, 160]
+Shoplifting041_x264:
+  checkout:
+  - - [40, 60]
+    - [140, 60]
+    - [140, 200]
+    - [40, 200]
+  shelf:
+  - - [220, 40]
+    - [320, 40]
+    - [320, 240]
+    - [220, 240]
+  - - [0, 0]
+    - [180, 0]
+    - [180, 60]
+    - [0, 60]
+Shoplifting044_x264:
+  checkout:
+  - - [160, 40]
+    - [300, 40]
+    - [300, 150]
+    - [160, 150]
+  shelf:
+  - - [0, 0]
+    - [150, 0]
+    - [150, 240]
+    - [0, 240]
+Shoplifting049_x264:
+  checkout: []
+  shelf:
+  - - [0, 70]
+    - [320, 70]
+    - [320, 200]
+    - [0, 200]
+  - - [60, 20]
+    - [320, 20]
+    - [320, 70]
+    - [60, 70]
