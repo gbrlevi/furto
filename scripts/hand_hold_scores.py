@@ -89,7 +89,11 @@ def main() -> None:
         z = np.load(path)
         kp, box, fidx = z["keypoints"], z["bbox"], z["frame_idx"]
         cuts = boxes(kp, box, config)
-        capture = cv2.VideoCapture(str(Path(config["videos"]) / config["video_name"].format(vid)))
+        name = config["video_name"].format(vid)
+        dirs = config["videos"] if isinstance(config["videos"], list) else [config["videos"]]
+        capture = cv2.VideoCapture(
+            str(next(Path(d) / name for d in dirs if (Path(d) / name).exists()))
+        )
         fps, total = capture.get(cv2.CAP_PROP_FPS), int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
         source = frames_to_keep(fps, total, config["pose_fps"])
         wanted = {int(source[q]): q for q in np.unique(fidx) if q < len(source)}

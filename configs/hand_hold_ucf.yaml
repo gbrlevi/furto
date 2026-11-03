@@ -1,0 +1,19 @@
+# Hand crops of the UCF-Crime poses (configs/pose_extract_ucf_items.yaml), same settings as
+# configs/hand_hold_merl.yaml. At 320 x 240 the 48 px minimum crop is larger than most boxes
+# allow: the hand is a few pixels and the crop carries much of its surroundings.
+model: openai/clip-vit-base-patch16
+poses: data/interim/ucf_items
+videos: [data/raw/ucf_crime, data/raw/ucf_crime/normal_test]
+video_name: "{}.mp4"
+pose_fps: 15
+crop_fraction: 0.25
+min_crop: 48
+forearm_push: 0.25
+batch: 256
+out: data/features/ucf_hands
+holding:
+  - a photo of a hand holding a packaged product
+  - a photo of a hand holding a snack bar or a can
+empty:
+  - a photo of an empty hand
+  - a photo of an open hand with nothing in it
